@@ -1,0 +1,47 @@
+experiment_id: E1
+name: improved-fixed-640-lightaug
+
+dataset:
+  project_id: vnm-money-currency/vietnamese-currency-lgi9i-4z7kn
+  version: null  # Điền sau khi tạo version cải tiến.
+  format: yolov8
+  split_policy: keep_source_split
+  roboflow_augmentation:
+    brightness_exposure: light
+    rotation_degrees: 10
+    perspective: light
+    blur_noise: light
+    occlusion: light_if_available
+    strong_color_shift: false
+
+model:
+  checkpoint: yolov8n.pt
+
+train:
+  imgsz: 640
+  epochs: 100
+  batch: 16
+  patience: 20
+  seed: 42
+  device: 0
+  workers: 2
+
+  # Augmentation được thực hiện ở dataset version, không lặp trong trainer.
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.0
+  degrees: 0.0
+  translate: 0.0
+  scale: 0.0
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.0
+  mosaic: 0.0
+  mixup: 0.0
+  copy_paste: 0.0
+
+output:
+  drive_root: /content/drive/MyDrive/nhan_dang_mau
+  run_name: improved
+

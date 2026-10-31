@@ -1,0 +1,58 @@
+experiment_id: E0
+name: baseline-fixed-640
+
+dataset:
+  project_id: vnm-money-currency/vietnamese-currency-lgi9i-4z7kn
+  version: 1
+  version_name: "2026-10-25 4:41am"
+  source_images: 2195
+  version_images: 2194
+  splits:
+    train: 1537
+    valid: 439
+    test: 218
+  class_order:
+    - "1000"
+    - "10000"
+    - "100000"
+    - "2000"
+    - "20000"
+    - "200000"
+    - "5000"
+    - "50000"
+    - "500000"
+  format: yolov8
+  split_policy: keep_source_split
+  note: Roboflow excluded the single zero-box test image from the generated version; the source dataset remains unchanged.
+
+model:
+  checkpoint: yolov8n.pt
+
+train:
+  imgsz: 640
+  epochs: 100
+  batch: 16
+  patience: 20
+  seed: 42
+  device: 0
+  workers: 2
+
+  # Baseline không dùng augmentation của trainer.
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.0
+  degrees: 0.0
+  translate: 0.0
+  scale: 0.0
+  shear: 0.0
+  perspective: 0.0
+  flipud: 0.0
+  fliplr: 0.0
+  mosaic: 0.0
+  mixup: 0.0
+  copy_paste: 0.0
+
+output:
+  drive_root: /content/drive/MyDrive/nhan_dang_mau
+  run_name: baseline
+

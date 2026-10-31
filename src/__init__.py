@@ -1,0 +1,2 @@
+"""Vietnamese banknote detection project."""
+

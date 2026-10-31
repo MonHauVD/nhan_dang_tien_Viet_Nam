@@ -1,0 +1,57 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*api_key*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Datasets and generated artifacts
+data/
+datasets/
+artifacts/
+runs/
+wandb/
+mlruns/
+*.zip
+*.tar
+*.tar.gz
+
+# Model weights and exported models
+*.pt
+*.pth
+*.onnx
+*.engine
+*.torchscript
+*.tflite
+
+# Generated outputs (keep directory markers)
+outputs/**
+!outputs/baseline/
+!outputs/improved/
+!outputs/baseline/.gitkeep
+!outputs/improved/.gitkeep
+
+# Temporary audit files
+.audit_temp/
+
+# Local reference PDFs; final report/slide exports use descriptive names
+CuoiKy.pdf
+slides/Slide*.pdf
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

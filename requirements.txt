@@ -1,0 +1,13 @@
+# Khoảng phiên bản ban đầu cho môi trường local/Colab.
+# Ghi lại phiên bản thực tế sau run Colab thành công đầu tiên.
+ultralytics>=8.3,<9
+roboflow>=1.1,<2
+numpy>=1.26,<3
+pandas>=2.2,<3
+opencv-python-headless>=4.10,<5
+matplotlib>=3.8,<4
+seaborn>=0.13,<1
+scikit-learn>=1.5,<2
+PyYAML>=6,<7
+gradio>=5,<7
+
