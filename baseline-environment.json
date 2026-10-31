@@ -1,0 +1,20 @@
+{
+  "python": "3.13.16",
+  "torch": "2.11.0+cu130",
+  "cuda": "13.0",
+  "gpu": "Tesla T4",
+  "ultralytics": "8.4.188",
+  "dataset_version": 1,
+  "experiment": "baseline",
+  "smoke_test": false,
+  "train_config": {
+    "model": "yolov8n.pt",
+    "imgsz": 640,
+    "epochs": 100,
+    "batch": 16,
+    "patience": 20,
+    "seed": 42,
+    "device": 0,
+    "workers": 2
+  }
+}
