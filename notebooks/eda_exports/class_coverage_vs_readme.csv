@@ -1,0 +1,11 @@
+mệnh_giá,có_trong_dataset,n_boxes
+500,False,0
+1000,True,604
+2000,True,607
+5000,True,609
+10000,True,609
+20000,True,603
+50000,True,620
+100000,True,609
+200000,True,602
+500000,True,601

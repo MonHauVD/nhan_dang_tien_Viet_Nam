@@ -1,0 +1,4 @@
+split,n_images,n_objects,pct_images,objects_per_image
+train,1537,3832,70.05,2.49
+valid,439,1074,20.01,2.45
+test,218,558,9.94,2.56

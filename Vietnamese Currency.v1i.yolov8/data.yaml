@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 9
+names: ['1000', '10000', '100000', '2000', '20000', '200000', '5000', '50000', '500000']
+
+roboflow:
+  workspace: vnm-money-currency
+  project: vietnamese-currency-lgi9i-4z7kn
+  version: 1
+  license: CC BY 4.0
+  url: https://app.roboflow.com/vnm-money-currency/vietnamese-currency-lgi9i-4z7kn/1

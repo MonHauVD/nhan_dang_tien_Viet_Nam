@@ -1,0 +1,7 @@
+check,count
+Ảnh không có object,0
+class_id ngoài phạm vi,0
+"Tọa độ bbox ngoài [0,1] (nới ±1e-3)",0
+w hoặc h ≤ 0,0
+Label không có ảnh tương ứng,0
+Ảnh không có label tương ứng,0

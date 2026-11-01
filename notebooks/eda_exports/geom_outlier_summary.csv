@@ -1,0 +1,5 @@
+loại outlier,n_boxes,pct
+area ≤ P01 (0.0058),56,1.02
+area ≥ P99 (0.7445),55,1.01
+"aspect_ratio ngoài [P01,P99]=[0.355,3.084]",110,2.01
+bất kỳ (union),170,3.11

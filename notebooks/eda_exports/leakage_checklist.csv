@@ -1,0 +1,7 @@
+hạng mục,trạng thái,rủi ro nếu sai
+Split cố định train/valid/test từ Roboflow,OK — đang dùng 3 thư mục sẵn có,So sánh model không công bằng
+Không dùng test để early-stop / chọn conf threshold,QUY TẮC nhóm — chỉ tune trên valid,Metric test lạc quan giả
+Không train lại trên test rồi báo điểm test,QUY TẮC nhóm,Không còn tập đánh giá độc lập
+Augmentation chỉ áp khi train (không pre-bake vào valid/test),README Roboflow: no augmentation khi export,Val/test không phản ánh ảnh thật
+Preprocess letterbox nhất quán cả 3 split,OK nếu nhất quán; ghi nhận artifact,Train/test khác phân phối tiền xử lý
+"EDA trên test chỉ để mô tả, không để chọn model",Cho phép mô tả; quyết định model dựa val,Lựa chọn bị ảnh hưởng bởi test
