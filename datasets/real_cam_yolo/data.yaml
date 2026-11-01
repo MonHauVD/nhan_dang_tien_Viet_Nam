@@ -1,0 +1,14 @@
+path: /home/dungtv/Desktop/Note/Hoc_Tap/Nhan_dang_mau/nhan_dang_tien_Viet_Nam/datasets/real_cam_yolo
+train: images
+val: images
+nc: 9
+names:
+- '1000'
+- '10000'
+- '100000'
+- '2000'
+- '20000'
+- '200000'
+- '5000'
+- '50000'
+- '500000'

@@ -24,6 +24,10 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_WEIGHT_CANDIDATES = [
+    ROOT / "notebooks" / "v3_exports" / "yolov8s_v3_best.pt",
+    ROOT / "runs" / "detect" / "vn_currency_yolov8s_v3" / "weights" / "best.pt",
+    ROOT / "notebooks" / "v2_exports" / "yolov8s_v2_best.pt",
+    ROOT / "runs" / "detect" / "vn_currency_yolov8s_v2" / "weights" / "best.pt",
     ROOT / "notebooks" / "baseline_exports" / "yolov8n_baseline_best.pt",
     ROOT / "runs" / "detect" / "vn_currency_yolov8n_baseline" / "weights" / "best.pt",
 ]
@@ -101,20 +105,146 @@ def print_help_image() -> None:
     )
 
 
-def predict_frame(model, frame_bgr: np.ndarray, conf: float, imgsz: int, device) -> np.ndarray:
+def predict_raw(model, frame_bgr: np.ndarray, conf: float, imgsz: int, device, iou: float = 0.5):
     results = model.predict(
         source=frame_bgr,
         conf=conf,
         imgsz=imgsz,
+        iou=iou,
         device=device,
         verbose=False,
     )
-    plotted = results[0].plot()  # BGR
-    return plotted
+    return results[0]
 
 
-def run_live(model, camera_id: int, conf: float, imgsz: int, device, save_dir: Path) -> None:
+def predict_frame(model, frame_bgr: np.ndarray, conf: float, imgsz: int, device) -> np.ndarray:
+    return predict_raw(model, frame_bgr, conf, imgsz, device).plot()
+
+
+def _iou_xyxy(a: np.ndarray, b: np.ndarray) -> float:
+    x1 = max(a[0], b[0])
+    y1 = max(a[1], b[1])
+    x2 = min(a[2], b[2])
+    y2 = min(a[3], b[3])
+    inter = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    if inter <= 0:
+        return 0.0
+    area_a = max(0.0, a[2] - a[0]) * max(0.0, a[3] - a[1])
+    area_b = max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
+    denom = area_a + area_b - inter
+    return float(inter / denom) if denom > 0 else 0.0
+
+
+class DetectionSmoother:
+    """Giữ box ổn định giữa các frame — giảm hiện tượng 'nhận được rồi mất'."""
+
+    def __init__(self, hold_frames: int = 12, match_iou: float = 0.3, vote_len: int = 7):
+        self.hold_frames = hold_frames
+        self.match_iou = match_iou
+        self.vote_len = vote_len
+        self.tracks: list[dict] = []
+        self._next_id = 1
+
+    def update(self, result) -> list[dict]:
+        dets = []
+        if result.boxes is not None and len(result.boxes):
+            xyxy = result.boxes.xyxy.cpu().numpy()
+            confs = result.boxes.conf.cpu().numpy()
+            clss = result.boxes.cls.cpu().numpy().astype(int)
+            names = result.names
+            for box, conf, cls_id in zip(xyxy, confs, clss):
+                dets.append(
+                    {
+                        "xyxy": box.astype(float),
+                        "conf": float(conf),
+                        "cls": int(cls_id),
+                        "name": names.get(int(cls_id), str(int(cls_id))),
+                    }
+                )
+
+        matched_track = set()
+        matched_det = set()
+
+        # Ghép detection ↔ track theo IoU
+        pairs = []
+        for ti, tr in enumerate(self.tracks):
+            for di, det in enumerate(dets):
+                pairs.append((_iou_xyxy(tr["xyxy"], det["xyxy"]), ti, di))
+        pairs.sort(reverse=True)
+
+        for iou, ti, di in pairs:
+            if iou < self.match_iou or ti in matched_track or di in matched_det:
+                continue
+            tr = self.tracks[ti]
+            det = dets[di]
+            # EMA box
+            tr["xyxy"] = 0.7 * tr["xyxy"] + 0.3 * det["xyxy"]
+            tr["conf"] = 0.6 * tr["conf"] + 0.4 * det["conf"]
+            tr["votes"].append(det["cls"])
+            if len(tr["votes"]) > self.vote_len:
+                tr["votes"] = tr["votes"][-self.vote_len :]
+            # class theo majority vote gần đây
+            votes = tr["votes"]
+            tr["cls"] = max(set(votes), key=votes.count)
+            tr["name"] = result.names.get(tr["cls"], str(tr["cls"]))
+            tr["missed"] = 0
+            matched_track.add(ti)
+            matched_det.add(di)
+
+        for di, det in enumerate(dets):
+            if di in matched_det:
+                continue
+            self.tracks.append(
+                {
+                    "id": self._next_id,
+                    "xyxy": det["xyxy"].copy(),
+                    "conf": det["conf"],
+                    "cls": det["cls"],
+                    "name": det["name"],
+                    "votes": [det["cls"]],
+                    "missed": 0,
+                }
+            )
+            self._next_id += 1
+
+        alive = []
+        for ti, tr in enumerate(self.tracks):
+            if ti not in matched_track:
+                tr["missed"] += 1
+            if tr["missed"] <= self.hold_frames:
+                alive.append(tr)
+        self.tracks = alive
+        return self.tracks
+
+
+def draw_tracks(frame: np.ndarray, tracks: list[dict]) -> np.ndarray:
+    out = frame.copy()
+    for tr in tracks:
+        x1, y1, x2, y2 = [int(v) for v in tr["xyxy"]]
+        color = (0, 220, 0) if tr["missed"] == 0 else (0, 180, 255)
+        cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
+        label = f'{tr["name"]} {tr["conf"]:.2f}'
+        if tr["missed"] > 0:
+            label += f' ~hold{tr["missed"]}'
+        tw = 8 * len(label)
+        cv2.rectangle(out, (x1, max(0, y1 - 22)), (x1 + tw, y1), color, -1)
+        cv2.putText(out, label, (x1 + 2, y1 - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 2, cv2.LINE_AA)
+    return out
+
+
+def run_live(
+    model,
+    camera_id: int,
+    conf: float,
+    imgsz: int,
+    device,
+    save_dir: Path,
+    hold_frames: int = 12,
+    smooth: bool = True,
+) -> None:
     print_help_live()
+    if smooth:
+        print(f"[LIVE] Temporal smooth ON (hold_frames={hold_frames}) — giảm mất nhận dạng giữa các frame")
     cap = cv2.VideoCapture(camera_id)
     if not cap.isOpened():
         raise RuntimeError(
@@ -133,6 +263,7 @@ def run_live(model, camera_id: int, conf: float, imgsz: int, device, save_dir: P
     fps = 0.0
     t_prev = time.time()
     frame_i = 0
+    smoother = DetectionSmoother(hold_frames=hold_frames) if smooth else None
 
     while True:
         if not paused:
@@ -140,7 +271,12 @@ def run_live(model, camera_id: int, conf: float, imgsz: int, device, save_dir: P
             if not ok:
                 print("Mất tín hiệu camera.")
                 break
-            vis = predict_frame(model, frame, conf, imgsz, device)
+            result = predict_raw(model, frame, conf, imgsz, device)
+            if smoother is not None:
+                tracks = smoother.update(result)
+                vis = draw_tracks(frame, tracks)
+            else:
+                vis = result.plot()
             last_vis = vis
             now = time.time()
             dt = max(now - t_prev, 1e-6)
@@ -152,7 +288,8 @@ def run_live(model, camera_id: int, conf: float, imgsz: int, device, save_dir: P
                 ok, frame = cap.read()
                 if not ok:
                     break
-                vis = predict_frame(model, frame, conf, imgsz, device)
+                result = predict_raw(model, frame, conf, imgsz, device)
+                vis = result.plot() if smoother is None else draw_tracks(frame, smoother.update(result))
                 last_vis = vis
 
         show = draw_overlay(vis, paused=paused, fps=fps, conf=conf, mode="LIVE")
@@ -400,8 +537,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weights", type=str, default=None, help="Đường dẫn best.pt")
     p.add_argument("--source", type=str, default=None, help="Ảnh hoặc thư mục (mode image)")
     p.add_argument("--camera", type=int, default=0, help="Chỉ số webcam (thường 0)")
-    p.add_argument("--conf", type=float, default=0.35, help="Ngưỡng confidence")
-    p.add_argument("--imgsz", type=int, default=640)
+    p.add_argument("--conf", type=float, default=0.28, help="Ngưỡng confidence (LIVE nên ~0.25–0.35)")
+    p.add_argument("--imgsz", type=int, default=800)
     p.add_argument("--device", type=str, default=None, help="0 / cpu / cuda:0")
     p.add_argument(
         "--save-dir",
@@ -409,6 +546,8 @@ def parse_args() -> argparse.Namespace:
         default=str(ROOT / "demo_outputs"),
         help="Thư mục lưu ảnh khi nhấn s",
     )
+    p.add_argument("--hold-frames", type=int, default=12, help="Giữ box khi miss N frame (chống nhấp nháy)")
+    p.add_argument("--no-smooth", action="store_true", help="Tắt temporal smoothing")
     return p.parse_args()
 
 
@@ -444,7 +583,16 @@ def main() -> None:
     mode = args.mode if args.mode != "ask" else interactive_mode_menu()
 
     if mode == "live":
-        run_live(model, args.camera, args.conf, args.imgsz, device, save_dir)
+        run_live(
+            model,
+            args.camera,
+            args.conf,
+            args.imgsz,
+            device,
+            save_dir,
+            hold_frames=args.hold_frames,
+            smooth=not args.no_smooth,
+        )
     else:
         source = Path(args.source) if args.source else None
         run_image(model, source, args.conf, args.imgsz, device, save_dir)

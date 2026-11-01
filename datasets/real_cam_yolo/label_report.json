@@ -1,0 +1,146 @@
+[
+  {
+    "file": "100000_back.jpg",
+    "denom": "100000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.8597344756126404,
+    "pred_cls_before_override": "100000"
+  },
+  {
+    "file": "100000_front.jpg",
+    "denom": "100000",
+    "side": "front",
+    "status": "ok",
+    "det_conf": 0.6268831491470337,
+    "pred_cls_before_override": "100000"
+  },
+  {
+    "file": "10000_back.jpg",
+    "denom": "10000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.7254022359848022,
+    "pred_cls_before_override": "10000"
+  },
+  {
+    "file": "10000_front.jpg",
+    "denom": "10000",
+    "side": "front",
+    "status": "ok",
+    "det_conf": 0.7368723154067993,
+    "pred_cls_before_override": "10000"
+  },
+  {
+    "file": "1000_back.jpg",
+    "denom": "1000",
+    "side": "back",
+    "status": "override_class",
+    "det_conf": 0.236263245344162,
+    "pred_cls_before_override": "5000"
+  },
+  {
+    "file": "1000_front.jpg",
+    "denom": "1000",
+    "side": "front",
+    "status": "ok",
+    "det_conf": 0.7569522261619568,
+    "pred_cls_before_override": "1000"
+  },
+  {
+    "file": "200000_back.jpg",
+    "denom": "200000",
+    "side": "back",
+    "status": "override_class",
+    "det_conf": 0.24388372898101807,
+    "pred_cls_before_override": "50000"
+  },
+  {
+    "file": "200000_front.jpg",
+    "denom": "200000",
+    "side": "front",
+    "status": "override_class",
+    "det_conf": 0.6901220083236694,
+    "pred_cls_before_override": "10000"
+  },
+  {
+    "file": "20000_back.jpg",
+    "denom": "20000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.5440799593925476,
+    "pred_cls_before_override": "20000"
+  },
+  {
+    "file": "20000_front.jpg",
+    "denom": "20000",
+    "side": "front",
+    "status": "ok",
+    "det_conf": 0.7556248903274536,
+    "pred_cls_before_override": "20000"
+  },
+  {
+    "file": "2000_back.jpg",
+    "denom": "2000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.7855717539787292,
+    "pred_cls_before_override": "2000"
+  },
+  {
+    "file": "2000_front.jpg",
+    "denom": "2000",
+    "side": "front",
+    "status": "ok",
+    "det_conf": 0.7532771825790405,
+    "pred_cls_before_override": "2000"
+  },
+  {
+    "file": "500000_back.jpg",
+    "denom": "500000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.5054733753204346,
+    "pred_cls_before_override": "500000"
+  },
+  {
+    "file": "500000_front.jpg",
+    "denom": "500000",
+    "side": "front",
+    "status": "override_class",
+    "det_conf": 0.43186309933662415,
+    "pred_cls_before_override": "20000"
+  },
+  {
+    "file": "50000_back.jpg",
+    "denom": "50000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.48649081587791443,
+    "pred_cls_before_override": "50000"
+  },
+  {
+    "file": "50000_front.jpg",
+    "denom": "50000",
+    "side": "front",
+    "status": "fail_no_det_fullframe_guess",
+    "det_conf": 0.0,
+    "pred_cls_before_override": "50000"
+  },
+  {
+    "file": "5000_back.jpg",
+    "denom": "5000",
+    "side": "back",
+    "status": "ok",
+    "det_conf": 0.37516841292381287,
+    "pred_cls_before_override": "5000"
+  },
+  {
+    "file": "5000_front.jpg",
+    "denom": "5000",
+    "side": "front",
+    "status": "ok",
+    "det_conf": 0.7739368081092834,
+    "pred_cls_before_override": "5000"
+  }
+]
