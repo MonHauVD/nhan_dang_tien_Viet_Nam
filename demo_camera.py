@@ -24,6 +24,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_WEIGHT_CANDIDATES = [
+    ROOT / "notebooks" / "v4_exports" / "yolov8s_v4_best.pt",
+    ROOT / "runs" / "detect" / "vn_currency_yolov8s_v4" / "weights" / "best.pt",
     ROOT / "notebooks" / "v3_exports" / "yolov8s_v3_best.pt",
     ROOT / "runs" / "detect" / "vn_currency_yolov8s_v3" / "weights" / "best.pt",
     ROOT / "notebooks" / "v2_exports" / "yolov8s_v2_best.pt",
@@ -136,16 +138,17 @@ def _iou_xyxy(a: np.ndarray, b: np.ndarray) -> float:
 
 
 class DetectionSmoother:
-    """Giữ box ổn định giữa các frame — giảm hiện tượng 'nhận được rồi mất'."""
+    """Giữ box ổn định theo thời gian (giây) — giảm hiện tượng 'nhận được rồi mất'."""
 
-    def __init__(self, hold_frames: int = 12, match_iou: float = 0.3, vote_len: int = 7):
-        self.hold_frames = hold_frames
+    def __init__(self, hold_seconds: float = 1.0, match_iou: float = 0.3, vote_len: int = 7):
+        self.hold_seconds = max(0.0, float(hold_seconds))
         self.match_iou = match_iou
         self.vote_len = vote_len
         self.tracks: list[dict] = []
         self._next_id = 1
 
     def update(self, result) -> list[dict]:
+        now = time.time()
         dets = []
         if result.boxes is not None and len(result.boxes):
             xyxy = result.boxes.xyxy.cpu().numpy()
@@ -187,7 +190,7 @@ class DetectionSmoother:
             votes = tr["votes"]
             tr["cls"] = max(set(votes), key=votes.count)
             tr["name"] = result.names.get(tr["cls"], str(tr["cls"]))
-            tr["missed"] = 0
+            tr["last_seen"] = now
             matched_track.add(ti)
             matched_det.add(di)
 
@@ -202,16 +205,16 @@ class DetectionSmoother:
                     "cls": det["cls"],
                     "name": det["name"],
                     "votes": [det["cls"]],
-                    "missed": 0,
+                    "last_seen": now,
                 }
             )
             self._next_id += 1
 
         alive = []
-        for ti, tr in enumerate(self.tracks):
-            if ti not in matched_track:
-                tr["missed"] += 1
-            if tr["missed"] <= self.hold_frames:
+        for tr in self.tracks:
+            age = now - tr["last_seen"]
+            tr["hold_age"] = age
+            if age <= self.hold_seconds:
                 alive.append(tr)
         self.tracks = alive
         return self.tracks
@@ -221,11 +224,12 @@ def draw_tracks(frame: np.ndarray, tracks: list[dict]) -> np.ndarray:
     out = frame.copy()
     for tr in tracks:
         x1, y1, x2, y2 = [int(v) for v in tr["xyxy"]]
-        color = (0, 220, 0) if tr["missed"] == 0 else (0, 180, 255)
+        holding = tr.get("hold_age", 0) > 1e-3
+        color = (0, 180, 255) if holding else (0, 220, 0)
         cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
         label = f'{tr["name"]} {tr["conf"]:.2f}'
-        if tr["missed"] > 0:
-            label += f' ~hold{tr["missed"]}'
+        if holding:
+            label += f' ~{tr["hold_age"]:.1f}s'
         tw = 8 * len(label)
         cv2.rectangle(out, (x1, max(0, y1 - 22)), (x1 + tw, y1), color, -1)
         cv2.putText(out, label, (x1 + 2, y1 - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 2, cv2.LINE_AA)
@@ -239,12 +243,12 @@ def run_live(
     imgsz: int,
     device,
     save_dir: Path,
-    hold_frames: int = 12,
+    hold_seconds: float = 1.0,
     smooth: bool = True,
 ) -> None:
     print_help_live()
     if smooth:
-        print(f"[LIVE] Temporal smooth ON (hold_frames={hold_frames}) — giảm mất nhận dạng giữa các frame")
+        print(f"[LIVE] Temporal smooth ON (hold={hold_seconds:.1f}s)")
     cap = cv2.VideoCapture(camera_id)
     if not cap.isOpened():
         raise RuntimeError(
@@ -263,7 +267,7 @@ def run_live(
     fps = 0.0
     t_prev = time.time()
     frame_i = 0
-    smoother = DetectionSmoother(hold_frames=hold_frames) if smooth else None
+    smoother = DetectionSmoother(hold_seconds=hold_seconds) if smooth else None
 
     while True:
         if not paused:
@@ -546,7 +550,18 @@ def parse_args() -> argparse.Namespace:
         default=str(ROOT / "demo_outputs"),
         help="Thư mục lưu ảnh khi nhấn s",
     )
-    p.add_argument("--hold-frames", type=int, default=12, help="Giữ box khi miss N frame (chống nhấp nháy)")
+    p.add_argument(
+        "--hold-seconds",
+        type=float,
+        default=1.0,
+        help="Giữ box tối đa N giây khi model miss (mặc định 1.0)",
+    )
+    p.add_argument(
+        "--hold-frames",
+        type=int,
+        default=None,
+        help="(Tuỳ chọn, cũ) Đổi ra giây theo giả định 30 FPS: seconds = frames/30",
+    )
     p.add_argument("--no-smooth", action="store_true", help="Tắt temporal smoothing")
     return p.parse_args()
 
@@ -573,9 +588,15 @@ def main() -> None:
         except Exception:
             device = "cpu"
 
+    hold_seconds = args.hold_seconds
+    if args.hold_frames is not None:
+        hold_seconds = max(0.0, args.hold_frames / 30.0)
+        print(f"[INFO] --hold-frames {args.hold_frames} ≈ {hold_seconds:.2f}s (giả định 30 FPS)")
+
     print(f"[INFO] weights = {weights}")
     print(f"[INFO] device  = {device}")
     print(f"[INFO] conf    = {args.conf}")
+    print(f"[INFO] hold    = {hold_seconds:.2f}s")
 
     model = load_model(weights, device)
     save_dir = Path(args.save_dir)
@@ -590,7 +611,7 @@ def main() -> None:
             args.imgsz,
             device,
             save_dir,
-            hold_frames=args.hold_frames,
+            hold_seconds=hold_seconds,
             smooth=not args.no_smooth,
         )
     else:
