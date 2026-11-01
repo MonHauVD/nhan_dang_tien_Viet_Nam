@@ -1,0 +1,52 @@
+{
+  "protocol": {
+    "data_yaml": "/home/dungtv/Desktop/Note/Hoc_Tap/Nhan_dang_mau/nhan_dang_tien_Viet_Nam/datasets/vn_currency_yolo_bbox/data.yaml",
+    "fair_imgsz": 640,
+    "eval_conf": 0.25,
+    "test_images_note": "Roboflow test ≈ 218 images — hạn chế mẫu"
+  },
+  "baseline_val": {
+    "mAP50": 0.9946490363727312,
+    "mAP50-95": 0.9309734654220072,
+    "precision": 0.9908782955476477,
+    "recall": 0.9955050148440443,
+    "f1": 0.9931862668774546
+  },
+  "final_val": {
+    "mAP50": 0.9949106366785452,
+    "mAP50-95": 0.894110471603744,
+    "precision": 0.9960439934524025,
+    "recall": 0.9971898874122789,
+    "f1": 0.9966166110497781
+  },
+  "baseline_test": {
+    "mAP50": 0.9919275679620506,
+    "mAP50-95": 0.9193445528892481,
+    "precision": 0.9946917634595782,
+    "recall": 0.9952966019289572,
+    "f1": 0.9949940907767519
+  },
+  "final_test": {
+    "mAP50": 0.9918341443690833,
+    "mAP50-95": 0.8822783374466152,
+    "precision": 0.9910433796808511,
+    "recall": 0.9965445194471232,
+    "f1": 0.9937863366833841
+  },
+  "delta_test_mAP50": -9.342359296726777e-05,
+  "delta_test_mAP50-95": -0.03706621544263289,
+  "improvements": [
+    "YOLOv8n → YOLOv8s (tăng capacity phân lớp mệnh giá gần nhau)",
+    "Augment mạnh: scale/mosaic/mixup/copy-paste/erasing + xoay 90°",
+    "Oversample class khó (5k/20k/200k/...)",
+    "Fine-tune đa vòng v2→v3→v4",
+    "Bổ sung ảnh cam thật mờ/nền rối (front/back) vào train",
+    "Demo: temporal hold ~1s giảm nhấp nháy"
+  ],
+  "limitations": [
+    "Roboflow val/test đã rất cao từ baseline → delta metric trên split này có thể nhỏ; cải tiến chủ yếu lộ trên camera thật",
+    "Một số cặp màu gần (5k↔20k, 200k↔10000/500k) vẫn có thể nhầm trong điều kiện ánh sáng xấu",
+    "Ảnh cam thật vẫn ít (18 gốc) dù đã augment",
+    "Thiếu class 500đ so với README 10 mệnh giá"
+  ]
+}
