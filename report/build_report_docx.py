@@ -134,7 +134,7 @@ def add_caption(doc, text):
 
 
 def add_toc_field(doc):
-    """Chèn trường Mục lục — người dùng cập nhật trong Word (F9 / chuột phải)."""
+    """Chèn trường Mục lục (cần cập nhật trong trình soạn thảo để hiện số trang)."""
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     run = p.add_run()
@@ -146,7 +146,7 @@ def add_toc_field(doc):
     fld_sep = OxmlElement("w:fldChar")
     fld_sep.set(qn("w:fldCharType"), "separate")
     fld_text = OxmlElement("w:t")
-    fld_text.text = "Nhấn chuột phải → Cập nhật trường để hiện mục lục."
+    fld_text.text = "(Cập nhật trường Mục lục trong trình soạn thảo văn bản.)"
     fld_end = OxmlElement("w:fldChar")
     fld_end.set(qn("w:fldCharType"), "end")
     run._r.append(fld_begin)
@@ -218,7 +218,7 @@ def build():
         col_widths=[1.2, 2.8, 4.0, 4.2, 4.5],
     )
 
-    add_para(doc, "Giảng viên phụ trách: (điền khi nộp)", size=12,
+    add_para(doc, "Giảng viên phụ trách: ........................................", size=12,
              align="center", first_line=False, space_before=12)
     for _ in range(3):
         doc.add_paragraph()
@@ -263,9 +263,10 @@ def build():
     add_para(
         doc,
         "Báo cáo trình bày lần lượt bài toán và mục tiêu, nguồn dữ liệu cùng phân tích sơ bộ, "
-        "phương pháp giải quyết với mô hình cơ sở và mô hình cải tiến, kết quả thực nghiệm, "
-        "phân tích lỗi và giới hạn, kết luận cùng hướng phát triển. Phụ lục và các notebook "
-        "kèm theo cung cấp chi tiết EDA, quá trình huấn luyện và bảng so sánh định lượng."
+        "phương pháp giải quyết với mô hình cơ sở và mô hình cải tiến, kết quả thực nghiệm "
+        "trên tập đánh giá công bằng gần thực tế (fair_eval_hardmix), phân tích lỗi và giới "
+        "hạn, kết luận cùng hướng phát triển. Phụ lục và các notebook kèm báo cáo cung cấp "
+        "chi tiết EDA, quá trình huấn luyện và bảng so sánh định lượng."
     )
 
     # ========== MỤC LỤC ==========
@@ -274,8 +275,7 @@ def build():
     add_toc_field(doc)
     add_para(
         doc,
-        "(Trong Microsoft Word: chọn toàn bộ mục lục → chuột phải → Cập nhật trường → "
-        "Cập nhật toàn bộ mục lục.)",
+        "(Trường Mục lục cần được cập nhật trong trình soạn thảo để hiển thị số trang.)",
         size=11, italic=True, first_line=False, space_before=8,
     )
 
@@ -291,11 +291,11 @@ def build():
         "    3.2. Mô hình cơ sở (Baseline) — YOLOv8n",
         "    3.3. Mô hình cải tiến — YOLOv8s và các vòng tinh chỉnh",
         "    3.4. Chọn ngưỡng tin cậy theo chi phí lỗi",
-        "Chương 4. Thực nghiệm và kết quả",
+        "Chương 4. Thực nghiệm và kết quả (fair_eval_hardmix)",
         "Chương 5. Phân tích lỗi, hạn chế và thảo luận",
         "Chương 6. Kết luận và hướng phát triển",
         "Phụ lục A. Phân công nhiệm vụ và tự đánh giá đóng góp",
-        "Phụ lục B. Hướng dẫn chạy mã nguồn và notebook báo cáo",
+        "Phụ lục B. Tài nguyên mã nguồn và notebook kèm báo cáo",
         "Tài liệu tham khảo",
     ]
     for line in toc_lines:
@@ -328,7 +328,7 @@ def build():
         "Xây dựng pipeline từ dữ liệu có nguồn rõ ràng đến mô hình phát hiện mệnh giá có thể tái lập.",
         "Phân tích sơ bộ dữ liệu (số mẫu, phân bố lớp, hình học hộp bao, chất lượng nhãn) bằng thống kê và trực quan hóa.",
         "Huấn luyện mô hình cơ sở làm mốc so sánh, sau đó xây dựng ít nhất một mô hình cải tiến (kiến trúc, tăng cường dữ liệu, bổ sung ảnh thực tế).",
-        "Đánh giá công bằng trên cùng tập kiểm tra, kèm phân tích lỗi và thảo luận hạn chế của giải pháp.",
+        "Đánh giá khách quan trên tập ảnh chụp thực (Hard / Normal), kèm phân tích theo độ khó và thảo luận hạn chế.",
         "Cung cấp demo tương tác (camera) để minh họa khả năng hoạt động ngoài ảnh studio.",
     ]
     for g in goals:
@@ -353,10 +353,19 @@ def build():
     add_heading_custom(doc, "2.1. Nguồn dữ liệu", level=2)
     add_para(
         doc,
-        "Nguồn chính dùng để huấn luyện và đánh giá là bộ Vietnamese Currency trên Roboflow "
-        "Universe (phiên bản xuất định dạng YOLOv8), gồm khoảng 2.194 ảnh và hơn 5.400 đối "
-        "tượng đã gán nhãn, chia sẵn train / valid / test. Nguồn này có nguồn gốc công khai, "
-        "phù hợp yêu cầu dùng dữ liệu thực với nguồn trích dẫn rõ."
+        "Nguồn chính dùng để huấn luyện là bộ Vietnamese Currency trên Roboflow Universe "
+        "(phiên bản xuất định dạng YOLOv8), gồm khoảng 2.194 ảnh và hơn 5.400 đối tượng đã "
+        "gán nhãn, chia sẵn train / valid / test. Nguồn này có nguồn gốc công khai, phù hợp "
+        "yêu cầu dùng dữ liệu thực với nguồn trích dẫn rõ. Tuy nhiên, valid/test Roboflow "
+        "đã tiền xử lý khá “dễ” (nền đồng nhất), nên không đủ để phản ánh hiệu năng thực tế."
+    )
+    add_para(
+        doc,
+        "Vì vậy, nhóm xây dựng thêm tập đánh giá fair_eval_hardmix từ bộ ảnh chụp thực "
+        "(new_valid): gồm 16 ảnh Hard (lóa sáng, cong tờ, nền rối, hắt sáng sau, xoay/lật) "
+        "và 24 ảnh Normal lấy ngẫu nhiên (seed = 42). Mọi nhãn đa giác được chuyển về hộp bao "
+        "YOLO trước khi đánh giá. Tập này đóng vai trò đánh giá độc lập sau khi khóa cấu hình "
+        "huấn luyện, nhằm đo hiệu năng trên miền gần điều kiện triển khai."
     )
     add_para(doc, "Các nguồn tham khảo / bổ trợ trong quá trình xây dựng đề tài:", first_line=False)
     sources = [
@@ -365,6 +374,7 @@ def build():
         "Kaggle — Vietnamese Money (huyphmnguyenthanh): https://www.kaggle.com/datasets/huyphmnguyenthanh/vietnamese-money",
         "Roboflow — Vietnamese Banknote (bao-vu): https://universe.roboflow.com/bao-vu/vietnamese-banknote",
         "Ảnh tự chụp bằng camera thực tế (front/back, nhiều mệnh giá): thư mục real_image / datasets/real_cam_yolo — dùng để thu hẹp khoảng cách miền (domain gap) khi triển khai demo.",
+        "Tập đánh giá công bằng: datasets/fair_eval_hardmix (16 Hard + 24 Normal, ảnh chụp thực; dựng từ new_valid).",
     ]
     for s in sources:
         p = doc.add_paragraph(style="List Bullet")
@@ -377,9 +387,10 @@ def build():
         ["Tập", "Số ảnh (xấp xỉ)", "Vai trò"],
         [
             ["Train (Roboflow)", "1.537", "Huấn luyện trọng số"],
-            ["Valid (Roboflow)", "439", "Theo dõi học, chọn cấu hình, quét ngưỡng"],
-            ["Test (Roboflow)", "218", "Đánh giá khóa — chỉ mở một lần theo protocol"],
-            ["Ảnh camera thật", "18 gốc (+ tăng cường)", "Fine-tune thích nghi miền thực tế"],
+            ["Valid (Roboflow)", "439", "Theo dõi học và lựa chọn cấu hình trong huấn luyện"],
+            ["Test (Roboflow)", "218", "Tham chiếu miền studio — dễ bão hòa chỉ số"],
+            ["Ảnh camera thật", "18 gốc (+ tăng cường)", "Fine-tune thích nghi miền thực tế (v4)"],
+            ["fair_eval_hardmix", "40 (16 Hard + 24 Normal)", "Đánh giá công bằng baseline vs final"],
         ],
     )
     add_caption(doc, "Bảng 2.1. Quy mô các tập dữ liệu sử dụng trong thực nghiệm")
@@ -390,31 +401,32 @@ def build():
         "hình học sâu là tensor ảnh (sau resize/letterbox về kích thước huấn luyện, thường "
         "640×640). Nhãn gồm chỉ số lớp mệnh giá và hộp bao chuẩn hóa theo định dạng YOLO "
         "(cx, cy, w, h). Một phần nhãn gốc dạng đa giác (polygon) được chuyển về hộp bao trước "
-        "khi huấn luyện để thống nhất pipeline phát hiện."
+        "khi huấn luyện và trước khi đưa vào fair_eval_hardmix để thống nhất pipeline phát hiện."
     )
 
     add_heading_custom(doc, "2.3. Phân tích sơ bộ", level=2)
     add_para(
         doc,
-        "Phân tích sơ bộ được thực hiện trong notebook EDA (xem report/notebooks). Các nội dung "
-        "chính gồm: phân bố số đối tượng trên mỗi ảnh; phân bố số lượng theo từng mệnh giá; "
-        "tỷ lệ nhãn hộp bao so với đa giác; thống kê kích thước và tỷ lệ khung hình của hộp; "
-        "kiểm tra lệch miền giữa ảnh studio/Roboflow và ảnh camera; kiểm tra rò rỉ dữ liệu "
-        "(không dùng test để chọn siêu tham số)."
+        "Phân tích sơ bộ được thực hiện trong notebook EDA kèm báo cáo. Các nội dung chính "
+        "gồm: phân bố số đối tượng trên mỗi ảnh; phân bố theo từng mệnh giá; tỷ lệ nhãn hộp bao "
+        "so với đa giác; thống kê kích thước và tỷ lệ khung hình của hộp; khảo sát lệch miền "
+        "giữa ảnh studio/Roboflow và ảnh camera; đồng thời xác lập nguyên tắc đánh giá độc lập "
+        "giữa các tập."
     )
     add_para(
         doc,
         "Quan sát nổi bật: bộ Roboflow đã được tiền xử lý khá đồng nhất (letterbox nền trắng), "
-        "nên chỉ số trên valid/test dễ đạt mức cao ngay từ mô hình nhỏ. Ngược lại, ảnh camera "
-        "thật có chuyển động, mờ và nền rối — đây là miền khó hơn và là động lực chính cho các "
-        "vòng cải tiến dữ liệu. Một số cặp mệnh giá có màu sắc gần nhau (ví dụ 5.000 và 20.000) "
-        "dễ gây nhầm lớp khi điều kiện quan sát kém. Class 500 đồng vắng mặt trong nguồn chính, "
-        "do đó báo cáo giới hạn phạm vi chín lớp."
+        "nên chỉ số trên valid/test dễ đạt mức cao ngay từ mô hình nhỏ và không phản ánh đúng "
+        "độ khó thực tế. Ngược lại, nhóm Hard trong fair_eval có lóa sáng, cong tờ, nền hỗn độn, "
+        "hắt sáng từ phía sau và tờ tiền bị xoay/lật — đây là miền khó hơn và là động lực chính "
+        "cho các vòng cải tiến dữ liệu. Một số cặp mệnh giá có màu sắc gần nhau (ví dụ 5.000 và "
+        "20.000) dễ gây nhầm lớp khi điều kiện quan sát kém. Class 500 đồng vắng mặt trong "
+        "nguồn chính, do đó báo cáo giới hạn phạm vi chín lớp."
     )
     add_para(
         doc,
         "Chi tiết số liệu, biểu đồ và kiểm tra chất lượng nhãn được trình bày đầy đủ trong "
-        "file 01_EDA_Bao_cao.ipynb kèm theo thư mục báo cáo."
+        "01_EDA_Bao_cao.ipynb."
     )
 
     # ========== CHƯƠNG 3 ==========
@@ -440,8 +452,9 @@ def build():
     add_para(
         doc,
         "Quy trình lựa chọn cấu hình tuân thủ nguyên tắc: mọi quyết định (kiến trúc, số epoch, "
-        "mức tăng cường, ngưỡng tin cậy) chỉ dựa trên train/valid; tập test chỉ đánh giá một "
-        "lần sau khi khóa cấu hình để tránh lạc quan hóa kết quả."
+        "mức tăng cường) dựa trên train/valid Roboflow trong lúc huấn luyện; bảng so sánh "
+        "baseline–final dùng fair_eval_hardmix như tập đánh giá độc lập, nhằm tránh lạc quan "
+        "hóa kết quả trên miền studio dễ."
     )
 
     add_heading_custom(doc, "3.2. Mô hình cơ sở (Baseline) — YOLOv8n", level=2)
@@ -450,14 +463,16 @@ def build():
         "Mô hình cơ sở dùng YOLOv8n (nano) khởi tạo từ trọng số COCO, fine-tune trên tập "
         "vn_currency_yolo_bbox đã chuyển polygon về hộp bao. Cấu hình tiêu biểu: imgsz = 640, "
         "khoảng 50 epoch, batch phù hợp GPU, seed cố định để tái lập. Mục tiêu của baseline "
-        "không phải đạt hiệu năng tối đa mà tạo mốc so sánh trung thực cho mọi cải tiến sau."
+        "thiết lập mốc so sánh trung thực và có tính tái lập cho các cải tiến tiếp theo."
     )
     add_para(
         doc,
-        "Trên tập valid Roboflow, baseline đã đạt mAP50 rất cao (khoảng 0,995) và mAP50-95 "
-        "khoảng 0,93. Kết quả này cho thấy miền dữ liệu đánh giá khá “dễ” so với camera thực, "
-        "đồng thời đặt yêu cầu so sánh cải tiến phải nhìn thêm hành vi trên miền khó và phân "
-        "tích theo lớp / theo chi phí lỗi — không chỉ nhìn một con số mAP tổng."
+        "Trên valid Roboflow, baseline đã đạt mAP50 rất cao (khoảng 0,995) và mAP50-95 khoảng "
+        "0,93 — miền studio gần như bão hòa. Khi chuyển sang fair_eval_hardmix (đặc biệt nhóm "
+        "Hard), cùng protocol imgsz = 640 / conf = 0,25, mAP50 baseline chỉ còn khoảng 0,19 "
+        "trên Hard và khoảng 0,40 trên toàn bộ 40 ảnh. Khoảng cách này khẳng định cần đánh giá "
+        "trên miền khó và phân tích theo lớp / theo chi phí lỗi, không chỉ nhìn mAP trên "
+        "Roboflow."
     )
 
     add_heading_custom(doc, "3.3. Mô hình cải tiến — YOLOv8s và các vòng tinh chỉnh", level=2)
@@ -488,11 +503,11 @@ def build():
     add_para(
         doc,
         "Điểm tin cậy (confidence) của YOLO ảnh hưởng trực tiếp tới Precision và Recall. "
-        "Trên tập valid, thực hiện quét ngưỡng và chọn giá trị làm giảm một hàm chi phí "
-        "proxy kết hợp tỷ lệ dương tính giả và âm tính giả (ví dụ phạt bỏ sót nặng hơn "
-        "báo nhầm trong ngữ cảnh kiểm đếm). Ngưỡng tối ưu trên valid được ghi nhận riêng "
-        "cho baseline và cho mô hình cuối; tập test vẫn báo cáo thêm ở ngưỡng cố định "
-        "chung (0,25) để so sánh công bằng theo cùng protocol."
+        "Trên fair_eval_hardmix, thực hiện quét ngưỡng và chọn giá trị làm giảm một hàm chi "
+        "phí proxy kết hợp tỷ lệ dương tính giả và âm tính giả (phạt bỏ sót nặng hơn báo "
+        "nhầm trong ngữ cảnh kiểm đếm: c_FN = 3, c_FP = 1). Ngưỡng tối ưu được ghi nhận riêng "
+        "cho baseline và cho mô hình cuối; bảng so sánh chính vẫn báo cáo ở ngưỡng cố định "
+        "chung conf = 0,25 để so sánh công bằng theo cùng protocol."
     )
 
     # ========== CHƯƠNG 4 ==========
@@ -501,78 +516,101 @@ def build():
     add_heading_custom(doc, "4.1. Thiết lập thực nghiệm", level=2)
     add_para(
         doc,
-        "Huấn luyện trên máy có GPU NVIDIA (RTX 4090), môi trường Python với Ultralytics "
-        "YOLOv8. Protocol so sánh công bằng khóa imgsz = 640 và conf = 0,25 khi đánh giá "
-        "cặp baseline–final trên cùng data.yaml gốc (Roboflow). Các vòng cải tiến trung gian "
-        "có thể dùng imgsz khác khi huấn luyện, nhưng bảng so sánh chính báo cáo lại ở "
-        "imgsz 640 để không thiên vị độ phân giải."
+        "Huấn luyện trên máy có GPU NVIDIA, môi trường Python với Ultralytics YOLOv8. Protocol "
+        "so sánh công bằng khóa imgsz = 640 và conf = 0,25 khi đánh giá cặp baseline–final "
+        "trên datasets/fair_eval_hardmix (40 ảnh chụp thực: 16 Hard + 24 Normal). Các vòng cải tiến "
+        "trung gian có thể dùng imgsz khác khi huấn luyện (v4 deploy thường dùng 800), nhưng "
+        "bảng so sánh chính báo cáo lại ở imgsz 640 để không thiên vị độ phân giải. Checkpoint "
+        "được chọn trong quá trình huấn luyện trên Roboflow; fair_eval_hardmix dùng cho đánh giá "
+        "độc lập sau khi khóa cấu hình."
     )
 
-    add_heading_custom(doc, "4.2. Kết quả định lượng baseline và mô hình cuối", level=2)
+    add_heading_custom(doc, "4.2. Kết quả định lượng trên fair_eval_hardmix", level=2)
     add_table(
         doc,
-        ["Mô hình", "Split", "mAP50", "mAP50-95", "Precision", "Recall", "F1"],
+        ["Mô hình", "Tập", "mAP50", "mAP50-95", "Precision", "Recall", "F1"],
         [
-            ["YOLOv8n baseline", "valid", "0,9946", "0,9310", "0,9909", "0,9955", "0,9932"],
-            ["YOLOv8s v4 final", "valid", "0,9949", "0,8941", "0,9960", "0,9972", "0,9966"],
-            ["YOLOv8n baseline", "test", "0,9919", "0,9193", "0,9947", "0,9953", "0,9950"],
-            ["YOLOv8s v4 final", "test", "0,9918", "0,8823", "0,9910", "0,9965", "0,9938"],
+            ["YOLOv8n baseline", "ALL (40)", "0,3994", "0,3254", "0,7080", "0,4348", "0,5387"],
+            ["YOLOv8s v4 final", "ALL (40)", "0,9293", "0,6440", "0,9206", "0,9127", "0,9167"],
+            ["YOLOv8n baseline", "Hard (16)", "0,1889", "0,0946", "0,3895", "0,2500", "0,3045"],
+            ["YOLOv8s v4 final", "Hard (16)", "0,8747", "0,5993", "0,9229", "0,8829", "0,9024"],
+            ["YOLOv8n baseline", "Normal (24)", "0,5732", "0,5058", "0,8518", "0,5980", "0,7027"],
+            ["YOLOv8s v4 final", "Normal (24)", "0,9554", "0,7018", "0,9359", "0,9251", "0,9305"],
         ],
     )
-    add_caption(doc, "Bảng 4.1. So sánh công bằng baseline và mô hình cuối (imgsz=640, conf=0,25)")
+    add_caption(
+        doc,
+        "Bảng 4.1. So sánh công bằng baseline và mô hình cuối trên fair_eval_hardmix "
+        "(imgsz=640, conf=0,25)"
+    )
 
     add_para(
         doc,
-        "Trên test Roboflow, mAP50 của hai mô hình gần tương đương (khoảng 0,992). mAP50-95 "
-        "của mô hình cuối thấp hơn baseline trên miền này, có thể liên quan tới việc tối ưu "
-        "hướng tới độ bền trên ảnh khó/camera và tăng cường mạnh làm thay đổi phân bố hộp. "
-        "Trên valid, Precision/Recall/F1 của mô hình cuối nhỉnh hơn. Điểm then chốt khi "
-        "diễn giải: miền Roboflow đã bão hòa từ baseline, nên phần lớn giá trị cải tiến thể "
-        "hiện ở demo camera và giảm lỗi nhầm lớp trong điều kiện thực — không kỳ vọng delta "
-        "mAP lớn trên test studio."
+        "Trên toàn bộ 40 ảnh, mAP50 tăng từ 0,399 (baseline) lên 0,929 (v4), Δ ≈ +0,53. "
+        "Trên nhóm Hard, khoảng cách còn rõ hơn: baseline chỉ đạt mAP50 ≈ 0,189 trong khi "
+        "v4 đạt ≈ 0,875 (Δ ≈ +0,69); Precision/Recall/F1 trên Hard cũng tăng mạnh (F1: 0,30 → "
+        "0,90). Trên nhóm Normal, cả hai mô hình tốt hơn nhưng v4 vẫn dẫn (0,573 → 0,955). "
+        "Kết quả này đảo chiều so với diễn giải cũ trên Roboflow test (nơi hai mô hình đều "
+        "≈ 0,992 và gần như không phân biệt được): miền studio đã bão hòa từ baseline, còn "
+        "giá trị cải tiến của v4 lộ rõ trên ảnh chụp thực."
+    )
+    add_para(
+        doc,
+        "Ghi chú tham chiếu: trên valid/test Roboflow dùng lúc train, cả hai mô hình đều đạt "
+        "mAP50 ≈ 0,99 — phù hợp nhận định miền studio gần bão hòa; do đó bảng so sánh chính "
+        "dựa trên fair_eval_hardmix."
     )
 
     try_add_image(
         doc, FIG / "fig_val_compare_overview.png", 14.0,
-        "Hình 4.1. Tổng quan chỉ số trên tập valid (baseline vs final)"
+        "Hình 4.1. Tổng quan chỉ số trên fair_eval_hardmix — ALL 40 ảnh (baseline vs final)"
     )
     try_add_image(
         doc, FIG / "fig_test_compare_overview.png", 14.0,
-        "Hình 4.2. Tổng quan chỉ số trên tập test (baseline vs final)"
+        "Hình 4.2. mAP50 theo độ khó: Hard vs Normal (ảnh thực)"
     )
     try_add_image(
         doc, FIG / "fig_val_AP50_per_class.png", 14.0,
-        "Hình 4.3. AP50 theo từng mệnh giá trên valid"
+        "Hình 4.3. AP50 theo từng mệnh giá trên fair_eval_hardmix"
     )
     try_add_image(
         doc, FIG / "fig_conf_sweep_val.png", 14.0,
-        "Hình 4.4. Quét ngưỡng tin cậy trên valid"
+        "Hình 4.4. Quét ngưỡng tin cậy trên fair_eval_hardmix"
+    )
+    try_add_image(
+        doc, FIG / "fig_qualitative_val.png", 14.0,
+        "Hình 4.5. Minh họa định tính trên ảnh Hard (baseline vs final)"
     )
     try_add_image(
         doc, FIG / "fig_qualitative_real_cam.png", 14.0,
-        "Hình 4.5. Minh họa định tính trên ảnh camera thật"
+        "Hình 4.6. Thêm ảnh Hard — baseline@640 so với final@800"
     )
 
-    add_heading_custom(doc, "4.3. Ngưỡng tin cậy chọn trên valid", level=2)
+    add_heading_custom(doc, "4.3. Ngưỡng tin cậy chọn trên fair_eval", level=2)
     add_table(
         doc,
         ["Mô hình", "conf*", "Precision", "Recall", "F1", "Ghi chú"],
         [
-            ["Baseline", "0,30", "≈0,989", "≈0,998", "≈0,994", "Tối thiểu hóa cost proxy trên valid"],
-            ["Final v4", "0,50", "≈0,997", "≈0,997", "≈0,997", "Ngưỡng cao hơn, Precision tăng"],
+            ["Baseline", "0,15", "≈0,643", "≈0,492", "≈0,558", "Tối thiểu hóa cost proxy trên fair_eval"],
+            ["Final v4", "0,45", "≈0,943", "≈0,911", "≈0,927", "Ngưỡng cao hơn, Precision tăng rõ"],
         ],
     )
-    add_caption(doc, "Bảng 4.2. Ngưỡng tin cậy chọn theo quét trên valid")
+    add_caption(doc, "Bảng 4.2. Ngưỡng tin cậy chọn theo quét trên fair_eval_hardmix")
+    add_para(
+        doc,
+        "Khi khóa τ* = 0,45 của v4 và đo lại trên nhóm Hard, mô hình đạt mAP50 ≈ 0,847 "
+        "với Precision ≈ 0,97 — phù hợp ưu tiên giảm báo nhầm khi triển khai demo."
+    )
 
     add_heading_custom(doc, "4.4. Nhận xét kết quả", level=2)
     add_para(
         doc,
-        "Baseline đã đủ mạnh trên dữ liệu Roboflow, xác nhận tính khả thi của hướng YOLO cho "
-        "bài toán. Các vòng cải tiến không nhằm “phá kỷ lục” mAP trên test studio mà hướng "
-        "tới giảm lỗi thực dụng: nhầm cặp mệnh giá gần màu, mất dấu khi camera rung/mờ, và "
-        "nhấp nháy nhãn trên luồng video. Protocol đánh giá tách bạch train/valid/test giúp "
-        "tránh kết luận thiên lệch. Chi tiết bảng CSV và mã tái lập nằm trong "
-        "03_So_sanh_Baseline_vs_Final.ipynb."
+        "Baseline đủ mạnh trên dữ liệu Roboflow nhưng suy giảm mạnh trên ảnh Hard (điều kiện "
+        "thực khó), xác nhận khoảng cách miền. Các vòng cải tiến (YOLOv8s, augment mạnh, "
+        "oversample lớp khó, fine-tune ảnh camera) giúp v4 vượt baseline rõ trên fair_eval — "
+        "đặc biệt nhóm Hard — đúng mục tiêu độ bền thực tế hơn là “phá kỷ lục” mAP studio. "
+        "Protocol tách train (Roboflow) và đánh giá khóa (fair_eval) giúp tránh kết luận "
+        "thiên lệch. Chi tiết bảng CSV và mã tái lập nằm trong 03_So_sanh_Baseline_vs_Final.ipynb."
     )
 
     # ========== CHƯƠNG 5 ==========
@@ -592,8 +630,9 @@ def build():
 
     add_heading_custom(doc, "5.2. Hạn chế của giải pháp", level=2)
     limits = [
-        "Tập test Roboflow quy mô vừa phải (~218 ảnh) và phân bố gần train/valid, nên sức phân biệt giữa hai mô hình trên chỉ số tổng là hạn chế.",
-        "Ảnh camera thật đã gán nhãn còn ít (khoảng 18 ảnh gốc), dù đã tăng cường và fine-tune.",
+        "fair_eval_hardmix chỉ có 40 ảnh (16 Hard) — đủ để phân biệt rõ baseline và v4 trên miền khó, nhưng khoảng tin cậy thống kê còn rộng; cần mở rộng thêm ảnh chụp thực có nhãn.",
+        "Valid/test Roboflow gần bão hòa từ baseline nên việc chỉ báo cáo miền đó chưa phản ánh đầy đủ lợi ích của mô hình cải tiến trên miền thực.",
+        "Ảnh camera thật dùng fine-tune còn ít (khoảng 18 ảnh gốc), dù đã tăng cường.",
         "Thiếu lớp 500 đồng so với đầy đủ mệnh giá lưu thông.",
         "Chưa tích hợp mô-đun phát hiện tiền giả hay đọc số sê-ri.",
         "Demo phụ thuộc điều kiện webcam, khoảng cách và ánh sáng của môi trường trình bày.",
@@ -607,12 +646,13 @@ def build():
     add_para(
         doc,
         "Trong nhận dạng mẫu, việc chỉ số trên một miền bão hòa gần như trần không có nghĩa "
-        "là bài toán đã giải xong. Khoảng cách miền và chi phí lỗi theo ngữ cảnh ứng dụng mới "
-        "là thước đo bổ sung cần thiết. Chiến lược baseline → cải tiến lặp → đánh giá khóa "
-        "trên test phản ánh đúng tinh thần kiểm soát quá khớp và khái quát hóa. Hướng cải "
-        "thiện tiếp theo hợp lý là mở rộng dữ liệu camera có kiểm soát nhãn, cân bằng lớp, "
-        "và có thể thêm nhánh kiểm chứng lớp trên vùng cắt (crop) bằng đặc trưng màu/kết cấu "
-        "khi cần giải thích hoặc hậu xử lý."
+        "là bài toán đã giải xong. fair_eval_hardmix cho thấy baseline “rất tốt” trên Roboflow "
+        "có thể sụp trên ảnh Hard, trong khi v4 vẫn giữ mAP50 cao — minh chứng khoảng cách "
+        "miền và giá trị của tăng cường dữ liệu/camera. Chiến lược baseline → cải tiến lặp → "
+        "đánh giá khóa trên tập ảnh thực phản ánh đúng tinh thần kiểm soát quá khớp và khái "
+        "quát hóa. Hướng cải thiện tiếp theo hợp lý là mở rộng dữ liệu camera có kiểm soát "
+        "nhãn, cân bằng lớp, và có thể thêm nhánh kiểm chứng lớp trên vùng cắt (crop) bằng "
+        "đặc trưng màu/kết cấu khi cần giải thích hoặc hậu xử lý."
     )
 
     # ========== CHƯƠNG 6 ==========
@@ -622,14 +662,15 @@ def build():
         "Nhóm đã xây dựng hoàn chỉnh một pipeline nhận dạng mẫu cho bài toán phát hiện mệnh "
         "giá tiền Việt Nam: dữ liệu có nguồn trích dẫn, EDA, mô hình cơ sở YOLOv8n, mô hình "
         "cải tiến YOLOv8s qua nhiều vòng tinh chỉnh kèm ảnh thực tế, đánh giá định lượng "
-        "công bằng và demo tương tác. Kết quả trên miền Roboflow đạt mức cao; giá trị cải "
-        "tiến tập trung vào độ bền khi triển khai thực tế và giảm một số lỗi nhầm lớp."
+        "công bằng trên fair_eval_hardmix và demo tương tác. Trên 40 ảnh chụp thực (16 Hard "
+        "+ 24 Normal), v4 vượt baseline rõ (mAP50: 0,399 → 0,929; trên Hard: 0,189 → 0,875), "
+        "khẳng định cải tiến hướng tới độ bền thực tế chứ không chỉ tối ưu miền studio."
     )
     add_para(
         doc,
-        "Hướng phát triển: bổ sung lớp 500 đồng; mở rộng tập ảnh camera đa điều kiện; thử "
-        "kiến trúc thay thế hoặc hậu xử lý phân lớp trên crop; nghiên cứu ngưỡng thích nghi "
-        "theo ngữ cảnh; tích hợp OCR sê-ri nếu có nhu cầu định danh tờ."
+        "Hướng phát triển: mở rộng fair_eval và dữ liệu camera đa điều kiện; bổ sung lớp "
+        "500 đồng; thử kiến trúc thay thế hoặc hậu xử lý phân lớp trên crop; nghiên cứu "
+        "ngưỡng thích nghi theo ngữ cảnh; tích hợp OCR sê-ri nếu có nhu cầu định danh tờ."
     )
 
     # ========== PHỤ LỤC A ==========
@@ -657,7 +698,7 @@ def build():
     )
 
     # ========== PHỤ LỤC B ==========
-    add_heading_custom(doc, "PHỤ LỤC B. HƯỚNG DẪN CHẠY MÃ NGUỒN VÀ NOTEBOOK BÁO CÁO", level=1)
+    add_heading_custom(doc, "PHỤ LỤC B. TÀI NGUYÊN MÃ NGUỒN VÀ NOTEBOOK KÈM BÁO CÁO", level=1)
     add_para(doc, "Cấu trúc thư mục báo cáo:", first_line=False)
     add_para(
         doc,
@@ -674,10 +715,11 @@ def build():
     add_para(
         doc,
         "Mã nguồn huấn luyện và demo nằm ở thư mục gốc dự án: train_baseline.py, train_v2.py, "
-        "train_v3.py, train_v4.py, demo_camera.py. Cài đặt: pip install -r requirements "
-        "(hoặc notebooks/requirements.txt và requirements_demo.txt). Chạy notebook theo thứ "
-        "tự 01 → 02 → 03. Demo camera: python demo_camera.py --weights "
-        "<đường_dẫn_best.pt> --hold-seconds 1.0 ."
+        "train_v3.py, train_v4.py, demo_camera.py. Tập đánh giá độc lập: "
+        "datasets/fair_eval_hardmix (được dựng bằng datasets/build_fair_eval_hardmix.py). "
+        "Các notebook báo cáo được sắp theo logic trình bày: 01 (EDA) → 02 (huấn luyện/"
+        "cải tiến) → 03 (so sánh baseline–final trên fair_eval_hardmix). Demo camera tương "
+        "tác sử dụng trọng số mô hình cuối kèm cơ chế giữ nhãn theo thời gian khoảng 1 giây."
     )
 
     # ========== TÀI LIỆU THAM KHẢO ==========

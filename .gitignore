@@ -29,6 +29,8 @@ Thumbs.db
 .idea/
 .vscode/
 
+*.zip
+
 # Local outputs (tuỳ chọn — bỏ comment nếu không muốn commit)
 # demo_outputs/
 # runs/

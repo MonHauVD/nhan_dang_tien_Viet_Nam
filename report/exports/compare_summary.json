@@ -1,52 +1,70 @@
 {
   "protocol": {
-    "data_yaml": "/home/dungtv/Desktop/Note/Hoc_Tap/Nhan_dang_mau/nhan_dang_tien_Viet_Nam/datasets/vn_currency_yolo_bbox/data.yaml",
+    "data_yaml": "/home/dungtv/Desktop/Note/Hoc_Tap/Nhan_dang_mau/nhan_dang_tien_Viet_Nam/datasets/fair_eval_hardmix/data.yaml",
     "fair_imgsz": 640,
     "eval_conf": 0.25,
-    "test_images_note": "Roboflow test ≈ 218 images — hạn chế mẫu"
+    "n_hard": 16,
+    "n_normal": 24,
+    "n_total": 40,
+    "note": "fair_eval_hardmix: 16 Hard + 24 Normal (ảnh chụp thực); đánh giá độc lập sau khi khóa cấu hình"
   },
-  "baseline_val": {
-    "mAP50": 0.9946490363727312,
-    "mAP50-95": 0.9309734654220072,
-    "precision": 0.9908782955476477,
-    "recall": 0.9955050148440443,
-    "f1": 0.9931862668774546
+  "baseline_all": {
+    "mAP50": 0.39944753086419754,
+    "mAP50-95": 0.32543783068783066,
+    "precision": 0.7079670903258513,
+    "recall": 0.43479221926145306,
+    "f1": 0.538728636528047
   },
-  "final_val": {
-    "mAP50": 0.9949106366785452,
-    "mAP50-95": 0.894110471603744,
-    "precision": 0.9960439934524025,
-    "recall": 0.9971898874122789,
-    "f1": 0.9966166110497781
+  "final_all": {
+    "mAP50": 0.9292774146695714,
+    "mAP50-95": 0.6439516727701454,
+    "precision": 0.9206302784720387,
+    "recall": 0.912737039532202,
+    "f1": 0.9166666675295579
   },
-  "baseline_test": {
-    "mAP50": 0.9919275679620506,
-    "mAP50-95": 0.9193445528892481,
-    "precision": 0.9946917634595782,
-    "recall": 0.9952966019289572,
-    "f1": 0.9949940907767519
+  "baseline_hard": {
+    "mAP50": 0.1888888888888889,
+    "mAP50-95": 0.09461111111111112,
+    "precision": 0.3894575264559472,
+    "recall": 0.25,
+    "f1": 0.30452180977087717
   },
-  "final_test": {
-    "mAP50": 0.9918341443690833,
-    "mAP50-95": 0.8822783374466152,
-    "precision": 0.9910433796808511,
-    "recall": 0.9965445194471232,
-    "f1": 0.9937863366833841
+  "final_hard": {
+    "mAP50": 0.8747222222222222,
+    "mAP50-95": 0.599337037037037,
+    "precision": 0.9228775409619954,
+    "recall": 0.882899376051374,
+    "f1": 0.9024459194381644
   },
-  "delta_test_mAP50": -9.342359296726777e-05,
-  "delta_test_mAP50-95": -0.03706621544263289,
+  "baseline_normal": {
+    "mAP50": 0.5732261904761904,
+    "mAP50-95": 0.5057645833333334,
+    "precision": 0.8518447856290167,
+    "recall": 0.5980386336954135,
+    "f1": 0.7027269709112338
+  },
+  "final_normal": {
+    "mAP50": 0.9554261363636364,
+    "mAP50-95": 0.7017583513708514,
+    "precision": 0.9359209992524382,
+    "recall": 0.9251121643996505,
+    "f1": 0.9304851931025233
+  },
+  "delta_all_mAP50": 0.5298298838053739,
+  "delta_hard_mAP50": 0.6858333333333333,
+  "delta_hard_mAP50-95": 0.5047259259259259,
   "improvements": [
-    "YOLOv8n → YOLOv8s (tăng capacity phân lớp mệnh giá gần nhau)",
-    "Augment mạnh: scale/mosaic/mixup/copy-paste/erasing + xoay 90°",
-    "Oversample class khó (5k/20k/200k/...)",
-    "Fine-tune đa vòng v2→v3→v4",
-    "Bổ sung ảnh cam thật mờ/nền rối (front/back) vào train",
-    "Demo: temporal hold ~1s giảm nhấp nháy"
+    "Tăng dung lượng mạng: YOLOv8n → YOLOv8s",
+    "Tăng cường dữ liệu mạnh (scale/mosaic/mixup/copy-paste/erasing) và xoay 90°",
+    "Tái lấy mẫu các lớp dễ nhầm (5.000 / 20.000 / 200.000, …)",
+    "Fine-tune đa vòng v2 → v3 → v4",
+    "Bổ sung ảnh camera thực tế vào huấn luyện",
+    "Cơ chế giữ nhãn theo thời gian (~1 s) trên luồng demo"
   ],
   "limitations": [
-    "Roboflow val/test đã rất cao từ baseline → delta metric trên split này có thể nhỏ; cải tiến chủ yếu lộ trên camera thật",
-    "Một số cặp màu gần (5k↔20k, 200k↔10000/500k) vẫn có thể nhầm trong điều kiện ánh sáng xấu",
-    "Ảnh cam thật vẫn ít (18 gốc) dù đã augment",
-    "Thiếu class 500đ so với README 10 mệnh giá"
+    "Quy mô fair_eval còn hạn chế (40 ảnh, trong đó 16 Hard) nên khoảng tin cậy thống kê còn rộng",
+    "Một số cặp mệnh giá gần màu vẫn có thể nhầm trong điều kiện ánh sáng xấu",
+    "Ảnh camera thực tế dùng fine-tune còn ít dù đã tăng cường",
+    "Phạm vi lớp gồm chín mệnh giá; chưa phủ 500 đồng so với đặc tả đầy đủ"
   ]
 }
