@@ -1,0 +1,582 @@
+       HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG​
+                  KHOA CÔNG NGHỆ THÔNG TIN 1
+
+
+
+
+              BÁO CÁO BÀI TẬP LỚN​
+            MÔN HỌC: NHẬN DẠNG MẪU
+Đề tài: Phát hiện và nhận dạng mệnh giá tiền giấy/polymer
+        Việt Nam bằng mô hình học sâu (YOLOv8)
+
+
+       Giảng viên hướng dẫn: TS. Nguyễn Xuân Đức
+
+       Danh sách sinh viên:      Hoàng Minh Đức Anh - B26CHKH008
+
+                                 Trần Việt Dũng - B26CHKH030
+
+                                 Vũ Hoàng Lâm - B26CHKH059
+
+                                 Lê Khánh Minh - B26CHKH072
+
+       Lớp học:                  M26CQKH01- B
+
+       Nhóm bài tập lớn:         08
+
+
+
+                              Hà Nội - 2026
+                       MỤC LỤC
+CHƯƠNG 1. GIỚI THIỆU BÀI TOÁN VÀ MỤC TIÊU​                 3
+  1.1. Phát biểu bài toán​                                 3
+  1.2. Mục tiêu​                                           3
+  1.3. Phạm vi và giả định​                                3
+CHƯƠNG 2. DỮ LIỆU VÀ PHÂN TÍCH SƠ BỘ (EDA)​                5
+  2.1. Nguồn dữ liệu​                                      5
+  2.2. Quy mô và ý nghĩa đặc trưng / nhãn​                 6
+  2.3. Phân tích sơ bộ​                                    7
+CHƯƠNG 3. PHƯƠNG PHÁP GIẢI QUYẾT​                          8
+  3.1. Bài toán phát hiện và chỉ số đánh giá​              8
+  3.2. Mô hình cơ sở (Baseline) - YOLOv8n​                 8
+  3.3. Mô hình cải tiến - YOLOv8s và các vòng tinh chỉnh​  8
+  3.4. Chọn ngưỡng tin cậy theo chi phí lỗi​               9
+CHƯƠNG 4. THỰC NGHIỆM VÀ KẾT QUẢ​                         10
+  4.1. Thiết lập thực nghiệm​                             10
+  4.2. Kết quả định lượng trên fair_eval_hardmix​         10
+  4.3. Ngưỡng tin cậy chọn trên fair_eval​                15
+  4.4. Nhận xét kết quả​                                  15
+CHƯƠNG 5. PHÂN TÍCH LỖI, HẠN CHẾ VÀ THẢO LUẬN​            16
+  5.1. Phân tích lỗi​                                     16
+  5.2. Hạn chế của giải pháp​                             16
+  5.3. Thảo luận​                                         16
+CHƯƠNG 6. KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN​                   18
+PHỤ LỤC A. PHÂN CÔNG NHIỆM VỤ VÀ TỰ ĐÁNH GIÁ ĐÓNG GÓP​    19
+PHỤ LỤC B. TÀI NGUYÊN MÃ NGUỒN VÀ NOTEBOOK KÈM BÁO CÁO​ 20
+TÀI LIỆU THAM KHẢO​                                       21
+
+
+
+
+                             2
+CHƯƠNG 1. GIỚI THIỆU BÀI TOÁN VÀ MỤC TIÊU
+1.1. Phát biểu bài toán
+
+Cho một ảnh chứa không, một hoặc nhiều tờ tiền Việt Nam, hệ thống cần trả về danh
+sách các đối tượng được phát hiện. Mỗi đối tượng gồm tọa độ hộp bao và nhãn mệnh
+giá. Đây là bài toán phát hiện đối tượng (object detection) đa lớp, mở rộng của phân
+loại ảnh khi cần đồng thời định vị và phân lớp.
+
+Không gian nhãn thực nghiệm gồm chín mệnh giá phổ biến trên bộ dữ liệu Roboflow
+đã chọn: 1.000, 2.000, 5.000, 10.000, 20.000, 50.000, 100.000, 200.000 và 500.000
+đồng. Mệnh giá 500 đồng chưa có đủ mẫu có nhãn trong nguồn chính nên không đưa
+vào tập huấn luyện; phạm vi bài toán được nêu rõ để tránh hiểu nhầm với bộ mười
+mệnh giá đầy đủ trên thực tế lưu thông.
+
+1.2. Mục tiêu
+
+Các mục tiêu cụ thể gồm:
+
+   ●​ Xây dựng pipeline từ dữ liệu có nguồn rõ ràng đến mô hình phát hiện mệnh giá
+
+      có thể tái lập.
+   ●​ Phân tích sơ bộ dữ liệu (số mẫu, phân bố lớp, hình học hộp bao, chất lượng
+
+      nhãn) bằng thống kê và trực quan hóa.
+   ●​ Huấn luyện mô hình cơ sở làm mốc so sánh, sau đó xây dựng ít nhất một mô
+
+      hình cải tiến (kiến trúc, tăng cường dữ liệu, bổ sung ảnh thực tế).
+   ●​ Đánh giá khách quan trên tập ảnh chụp thực (Hard / Normal), kèm phân tích
+
+      theo độ khó và thảo luận hạn chế.
+   ●​ Cung cấp demo tương tác (camera) để minh họa khả năng hoạt động ngoài ảnh
+
+      studio.
+
+1.3. Phạm vi và giả định
+
+Phạm vi tập trung vào tờ tiền giấy/polymer Việt Nam trong ảnh RGB. Hệ thống không
+nhận diện tiền giả theo đặc trưng bảo an chuyên sâu, không OCR số sê-ri làm mục tiêu
+chính, và giả định nhãn được gán đúng về mệnh giá. Điều kiện ánh sáng kém, chuyển
+
+
+
+
+                                           3
+động mạnh hoặc che khuất lớn được xem là tình huống khó và được thảo luận trong
+phần hạn chế.
+
+
+
+
+                                      4
+CHƯƠNG 2. DỮ LIỆU VÀ PHÂN TÍCH SƠ BỘ (EDA)
+2.1. Nguồn dữ liệu
+
+Nguồn chính dùng để huấn luyện là bộ Vietnamese Currency trên Roboflow Universe
+(phiên bản xuất định dạng YOLOv8), gồm khoảng 2.194 ảnh và hơn 5.400 đối tượng
+đã gán nhãn, chia sẵn train / valid / test. Nguồn này có nguồn gốc công khai, phù hợp
+yêu cầu dùng dữ liệu thực với nguồn trích dẫn rõ. Tuy nhiên, valid/test Roboflow đã
+tiền xử lý khá “dễ” (nền đồng nhất), nên không đủ để phản ánh hiệu năng thực tế.
+
+Vì vậy, nhóm xây dựng thêm tập đánh giá fair_eval_hardmix từ bộ ảnh chụp thực
+(new_valid): gồm 16 ảnh Hard (lóa sáng, cong tờ, nền rối, hắt sáng sau, xoay/lật) và
+24 ảnh Normal lấy ngẫu nhiên (seed = 42). Mọi nhãn đa giác được chuyển về hộp bao
+YOLO trước khi đánh giá. Tập này đóng vai trò đánh giá độc lập sau khi khóa cấu
+hình huấn luyện, nhằm đo hiệu năng trên miền gần điều kiện triển khai.
+
+Các nguồn tham khảo / bổ trợ trong quá trình xây dựng đề tài:
+
+   ●​ Roboflow Vietnamese Currency (first-qkz37):
+      https://universe.roboflow.com/first-qkz37/vietnamese-currency-lgi9i
+   ●​ Kaggle - Vietnamese Money (huyphmnguyenthanh):
+      https://www.kaggle.com/datasets/huyphmnguyenthanh/vietnamese-money
+   ●​ Ảnh tự chụp bằng camera thực tế (front/back, nhiều mệnh giá): thư mục real_image /
+      datasets/real_cam_yolo - dùng để thu hẹp khoảng cách miền (domain gap) khi triển
+      khai demo.
+   ●​ Tập đánh giá công bằng: datasets/fair_eval_hardmix (16 Hard + 24 Normal, ảnh chụp
+      thực; dựng từ new_valid).​
+
+
+
+
+                                            5
+2.2. Quy mô và ý nghĩa đặc trưng / nhãn
+
+
+
+             Tập                        Số ảnh (xấp xỉ)                         Vai trò
+
+
+
+
+       Train (Roboflow)                      1.537                     Huấn luyện trọng số
+
+
+
+
+       Valid (Roboflow)                       439                 Theo dõi học và lựa chọn cấu
+                                                                      hình trong huấn luyện
+
+
+
+
+       Test (Roboflow)                        218                Tham chiếu miền studio - dễ bão
+                                                                           hòa chỉ số
+
+
+
+
+       Ảnh camera thật               18 gốc (+ tăng cường)      Fine-tune thích nghi miền thực tế
+                                                                                 (v4)
+
+
+
+
+      fair_eval_hardmix            40 (16 Hard + 24 Normal)      Đánh giá công bằng baseline vs
+                                                                                 final
+
+
+
+
+                   Bảng 2.1. Quy mô các tập dữ liệu sử dụng trong thực nghiệm
+
+Mỗi mẫu quan sát ở mức đối tượng là một tờ tiền trong ảnh. Đặc trưng đầu vào của mô
+hình học sâu là tensor ảnh (sau resize/letterbox về kích thước huấn luyện, thường
+640×640). Nhãn gồm chỉ số lớp mệnh giá và hộp bao chuẩn hóa theo định dạng YOLO
+(cx, cy, w, h). Một phần nhãn gốc dạng đa giác (polygon) được chuyển về hộp bao
+trước khi huấn luyện và trước khi đưa vào fair_eval_hardmix để thống nhất pipeline
+phát hiện.
+
+
+
+
+                                               6
+2.3. Phân tích sơ bộ
+
+Phân tích sơ bộ được thực hiện trong notebook EDA kèm báo cáo. Các nội dung chính
+gồm: phân bố số đối tượng trên mỗi ảnh; phân bố theo từng mệnh giá; tỷ lệ nhãn hộp
+bao so với đa giác; thống kê kích thước và tỷ lệ khung hình của hộp; khảo sát lệch
+miền giữa ảnh studio/Roboflow và ảnh camera; đồng thời xác lập nguyên tắc đánh giá
+độc lập giữa các tập.
+
+Quan sát nổi bật: bộ Roboflow đã được tiền xử lý khá đồng nhất (letterbox nền trắng),
+nên chỉ số trên valid/test dễ đạt mức cao ngay từ mô hình nhỏ và không phản ánh đúng
+độ khó thực tế. Ngược lại, nhóm Hard trong fair_eval có lóa sáng, cong tờ, nền hỗn
+độn, hắt sáng từ phía sau và tờ tiền bị xoay/lật - đây là miền khó hơn và là động lực
+chính cho các vòng cải tiến dữ liệu. Một số cặp mệnh giá có màu sắc gần nhau (ví dụ
+5.000 và 20.000) dễ gây nhầm lớp khi điều kiện quan sát kém. Class 500 đồng vắng
+mặt trong nguồn chính, do đó báo cáo giới hạn phạm vi chín lớp.
+
+Chi tiết số liệu, biểu đồ và kiểm tra chất lượng nhãn được trình bày đầy đủ trong
+01_EDA_Bao_cao.ipynb.
+
+
+
+
+                                         7
+CHƯƠNG 3. PHƯƠNG PHÁP GIẢI QUYẾT
+3.1. Bài toán phát hiện và chỉ số đánh giá
+
+Mô hình đầu ra là tập dự đoán (hộp bao, lớp, điểm tin cậy). Việc khớp dự đoán với
+nhãn thật dựa trên ngưỡng giao nhau trên hợp (IoU). Các chỉ số chính:
+
+   ●​ mAP50: trung bình độ chính xác trung bình theo lớp tại IoU = 0,5 - phản ánh
+
+       khả năng định vị và phân lớp ở mức chấp nhận thông dụng.
+   ●​ mAP50-95: trung bình trên nhiều ngưỡng IoU (0,5–0,95) - nhạy hơn với độ
+
+       khớp hộp bao.
+   ●​ Precision / Recall / F1 ở mức phát hiện: cân bằng giữa báo nhầm và bỏ sót.
+
+   ●​ AP50 theo từng lớp: phát hiện lớp yếu để định hướng tăng cường dữ liệu hoặc
+
+       điều chỉnh mất mát.​
+
+
+
+Quy trình lựa chọn cấu hình tuân thủ nguyên tắc: mọi quyết định (kiến trúc, số epoch,
+mức tăng cường) dựa trên train/valid Roboflow trong lúc huấn luyện; bảng so sánh
+baseline–final dùng fair_eval_hardmix như tập đánh giá độc lập, nhằm tránh lạc quan
+hóa kết quả trên miền studio dễ.
+
+3.2. Mô hình cơ sở (Baseline) - YOLOv8n
+
+Mô hình cơ sở dùng YOLOv8n (nano) khởi tạo từ trọng số COCO, fine-tune trên tập
+vn_currency_yolo_bbox đã chuyển polygon về hộp bao. Cấu hình tiêu biểu: imgsz =
+640, khoảng 50 epoch, batch phù hợp GPU, seed cố định để tái lập. Mục tiêu của
+baseline thiết lập mốc so sánh trung thực và có tính tái lập cho các cải tiến tiếp theo.
+
+Trên valid Roboflow, baseline đã đạt mAP50 rất cao (khoảng 0,995) và mAP50-95
+khoảng 0,93 - miền studio gần như bão hòa. Khi chuyển sang fair_eval_hardmix (đặc
+biệt nhóm Hard), cùng protocol imgsz = 640 / conf = 0,25, mAP50 baseline chỉ còn
+khoảng 0,19 trên Hard và khoảng 0,40 trên toàn bộ 40 ảnh. Khoảng cách này khẳng
+định cần đánh giá trên miền khó và phân tích theo lớp / theo chi phí lỗi, không chỉ nhìn
+mAP trên Roboflow.
+
+3.3. Mô hình cải tiến - YOLOv8s và các vòng tinh chỉnh
+
+
+
+
+                                            8
+Mô hình cải tiến đi theo hướng tăng dung lượng mạng, tăng cường dữ liệu mạnh hơn
+và bổ sung miền camera thật, thực hiện qua nhiều vòng:
+
+   ●​ Vòng v2: chuyển sang YOLOv8s; tăng cường
+
+        scale/mosaic/mixup/copy-paste/erasing; nhấn mạnh mất mát phân lớp; huấn
+        luyện dài hơn baseline.
+   ●​ Vòng v3: fine-tune từ v2; tăng imgsz (ví dụ 800); xoay 90° và oversample các
+
+        lớp dễ nhầm (như 5.000, 20.000, 200.000) nhằm giảm nhầm cặp màu gần.
+   ●​ Vòng v4 (mô hình cuối): fine-tune từ v3 trên tập có thêm ảnh camera thật đã
+
+        gán nhãn hộp bao thủ công; giữ các lớp trọng tâm còn lỗi trên demo; kết hợp cơ
+        chế giữ nhãn theo thời gian trên demo (~1 giây) để giảm nhấp nháy giữa các
+        khung hình.​
+
+
+
+Như vậy, so với baseline, mô hình cuối khác biệt ở ba trục: kiến trúc (n → s), chiến
+lược tăng cường và lấy mẫu lại lớp khó, và thích nghi miền bằng dữ liệu camera. Quá
+trình   thêm/bớt   cấu    hình    và   căn   chỉnh   được   ghi   lại   trong notebook
+02_Qua_trinh_Train_va_Cai_tien.ipynb.
+
+3.4. Chọn ngưỡng tin cậy theo chi phí lỗi
+
+Điểm tin cậy (confidence) của YOLO ảnh hưởng trực tiếp tới Precision và Recall.
+Trên fair_eval_hardmix, thực hiện quét ngưỡng và chọn giá trị làm giảm một hàm chi
+phí proxy kết hợp tỷ lệ dương tính giả và âm tính giả (phạt bỏ sót nặng hơn báo nhầm
+trong ngữ cảnh kiểm đếm: c_FN = 3, c_FP = 1). Ngưỡng tối ưu được ghi nhận riêng
+cho baseline và cho mô hình cuối; bảng so sánh chính vẫn báo cáo ở ngưỡng cố định
+chung conf = 0,25 để so sánh công bằng theo cùng protocol.
+
+
+
+
+                                             9
+CHƯƠNG 4. THỰC NGHIỆM VÀ KẾT QUẢ
+4.1. Thiết lập thực nghiệm
+
+Huấn luyện trên máy có GPU NVIDIA, môi trường Python với Ultralytics YOLOv8.
+Protocol so sánh công bằng khóa imgsz = 640 và conf = 0,25 khi đánh giá cặp
+baseline–final trên datasets/fair_eval_hardmix (40 ảnh chụp thực: 16 Hard + 24
+Normal). Các vòng cải tiến trung gian có thể dùng imgsz khác khi huấn luyện (v4
+deploy thường dùng 800), nhưng bảng so sánh chính báo cáo lại ở imgsz 640 để không
+thiên vị độ phân giải. Checkpoint được chọn trong quá trình huấn luyện trên
+Roboflow; fair_eval_hardmix dùng cho đánh giá độc lập sau khi khóa cấu hình.
+
+4.2. Kết quả định lượng trên fair_eval_hardmix
+
+
+
+     Mô hình            Tập         mAP50      mAP50-95 Precision        Recall         F1
+
+
+
+
+YOLOv8n baseline     ALL (40)       0,3994         0,3254    0,7080      0,4348       0,5387
+
+
+ YOLOv8s v4 final    ALL (40)       0,9293         0,6440    0,9206      0,9127       0,9167
+
+
+YOLOv8n baseline     Hard (16)      0,1889         0,0946    0,3895      0,2500       0,3045
+
+
+ YOLOv8s v4 final    Hard (16)      0,8747         0,5993    0,9229      0,8829       0,9024
+
+
+YOLOv8n baseline    Normal (24)     0,5732         0,5058    0,8518      0,5980       0,7027
+
+
+ YOLOv8s v4 final   Normal (24)     0,9554         0,7018    0,9359      0,9251       0,9305
+
+
+    Bảng 4.1. So sánh công bằng baseline và mô hình cuối trên fair_eval_hardmix (imgsz=640,
+                                          conf=0,25)
+
+Trên toàn bộ 40 ảnh, mAP50 tăng từ 0,399 (baseline) lên 0,929 (v4), Δ ≈ +0,53. Trên
+nhóm Hard, khoảng cách còn rõ hơn: baseline chỉ đạt mAP50 ≈ 0,189 trong khi v4 đạt
+≈ 0,875 (Δ ≈ +0,69); Precision/Recall/F1 trên Hard cũng tăng mạnh (F1: 0,30 → 0,90).
+Trên nhóm Normal, cả hai mô hình tốt hơn nhưng v4 vẫn dẫn (0,573 → 0,955). Kết
+
+
+
+                                              10
+quả này đảo chiều so với diễn giải cũ trên Roboflow test (nơi hai mô hình đều ≈ 0,992
+và gần như không phân biệt được): miền studio đã bão hòa từ baseline, còn giá trị cải
+tiến của v4 lộ rõ trên ảnh chụp thực.
+
+Ghi chú tham chiếu: trên valid/test Roboflow dùng lúc train, cả hai mô hình đều đạt
+mAP50 ≈ 0,99 - phù hợp nhận định miền studio gần bão hòa; do đó bảng so sánh chính
+dựa trên fair_eval_hardmix.
+
+
+
+
+        Hình 4.1. Tổng quan chỉ số trên fair_eval_hardmix - ALL 40 ảnh (baseline vs final)
+
+
+
+
+                    Hình 4.2. mAP50 theo độ khó: Hard vs Normal (ảnh thực)
+
+
+
+
+                                               11
+Hình 4.3. AP50 theo từng mệnh giá trên fair_eval_hardmix
+
+
+
+
+  Hình 4.4. Quét ngưỡng tin cậy trên fair_eval_hardmix
+
+
+
+
+                          12
+Hình 4.5. Minh họa định tính trên ảnh Hard (baseline vs final)
+
+
+
+
+                             13
+Hình 4.6. Thêm ảnh Hard - baseline@640 so với final@800
+
+
+
+
+                          14
+4.3. Ngưỡng tin cậy chọn trên fair_eval
+
+
+
+  Mô hình       conf*         Precision          Recall        F1              Ghi chú
+
+
+
+
+  Baseline      0,15           ≈0,643        ≈0,492        ≈0,558    Tối thiểu hóa cost proxy
+                                                                            trên fair_eval
+
+
+  Final v4      0,45           ≈0,943        ≈0,911        ≈0,927          Ngưỡng cao hơn,
+                                                                           Precision tăng rõ
+
+
+
+               Bảng 4.2. Ngưỡng tin cậy chọn theo quét trên fair_eval_hardmix
+
+Khi khóa τ* = 0,45 của v4 và đo lại trên nhóm Hard, mô hình đạt mAP50 ≈ 0,847 với
+Precision ≈ 0,97 - phù hợp ưu tiên giảm báo nhầm khi triển khai demo.
+
+4.4. Nhận xét kết quả
+
+Baseline đủ mạnh trên dữ liệu Roboflow nhưng suy giảm mạnh trên ảnh Hard (điều
+kiện thực khó), xác nhận khoảng cách miền. Các vòng cải tiến (YOLOv8s, augment
+mạnh, oversample lớp khó, fine-tune ảnh camera) giúp v4 vượt baseline rõ trên
+fair_eval - đặc biệt nhóm Hard - đúng mục tiêu độ bền thực tế hơn là “phá kỷ lục”
+mAP studio. Protocol tách train (Roboflow) và đánh giá khóa (fair_eval) giúp tránh kết
+luận   thiên   lệch.    Chi     tiết      bảng      CSV   và    mã   tái     lập    nằm        trong
+03_So_sanh_Baseline_vs_Final.ipynb.
+
+
+
+
+                                                  15
+CHƯƠNG 5. PHÂN TÍCH LỖI, HẠN CHẾ VÀ THẢO LUẬN
+5.1. Phân tích lỗi
+
+   ●​ Nhầm lớp giữa các mệnh giá có gam màu gần nhau khi ánh sáng lệch trắng
+
+      hoặc bão hòa màu thấp.
+   ●​ Bỏ sót hoặc hộp không ổn định khi tờ tiền chuyển động nhanh, ảnh mờ mạnh,
+
+      hoặc chỉ lộ một phần tờ.
+   ●​ Đa tờ chồng lấn / góc nghiêng lớn làm giảm IoU dù lớp đúng, ảnh hưởng
+
+      mAP50-95.
+   ●​ Letterbox nền trắng trên dữ liệu Roboflow tạo thiên lệch miền so với nền bàn,
+
+      tay người, vật dụng xung quanh trên camera.
+
+5.2. Hạn chế của giải pháp
+
+   ●​ fair_eval_hardmix chỉ có 40 ảnh (16 Hard) - đủ để phân biệt rõ baseline và v4
+
+      trên miền khó, nhưng khoảng tin cậy thống kê còn rộng; cần mở rộng thêm ảnh
+      chụp thực có nhãn.
+   ●​ Valid/test Roboflow gần bão hòa từ baseline nên việc chỉ báo cáo miền đó chưa
+
+      phản ánh đầy đủ lợi ích của mô hình cải tiến trên miền thực.
+   ●​ Ảnh camera thật dùng fine-tune còn ít (khoảng 18 ảnh gốc), dù đã tăng cường.
+
+   ●​ Thiếu lớp 500 đồng so với đầy đủ mệnh giá lưu thông.
+
+   ●​ Chưa tích hợp mô-đun phát hiện tiền giả hay đọc số sê-ri.
+
+   ●​ Demo phụ thuộc điều kiện webcam, khoảng cách và ánh sáng của môi trường
+
+      trình bày.
+
+5.3. Thảo luận
+
+Trong nhận dạng mẫu, việc chỉ số trên một miền bão hòa gần như trần không có nghĩa
+là bài toán đã giải xong. fair_eval_hardmix cho thấy baseline “rất tốt” trên Roboflow
+có thể sụp trên ảnh Hard, trong khi v4 vẫn giữ mAP50 cao - minh chứng khoảng cách
+miền và giá trị của tăng cường dữ liệu/camera. Chiến lược baseline → cải tiến lặp →
+đánh giá khóa trên tập ảnh thực phản ánh đúng tinh thần kiểm soát quá khớp và khái
+quát hóa. Hướng cải thiện tiếp theo hợp lý là mở rộng dữ liệu camera có kiểm soát
+
+
+
+
+                                         16
+nhãn, cân bằng lớp, và có thể thêm nhánh kiểm chứng lớp trên vùng cắt (crop) bằng
+đặc trưng màu/kết cấu khi cần giải thích hoặc hậu xử lý.
+
+
+
+
+                                          17
+CHƯƠNG 6. KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN
+
+Nhóm đã xây dựng hoàn chỉnh một pipeline nhận dạng mẫu cho bài toán phát hiện
+mệnh giá tiền Việt Nam: dữ liệu có nguồn trích dẫn, EDA, mô hình cơ sở YOLOv8n,
+mô hình cải tiến YOLOv8s qua nhiều vòng tinh chỉnh kèm ảnh thực tế, đánh giá định
+lượng công bằng trên fair_eval_hardmix và demo tương tác. Trên 40 ảnh chụp thực
+(16 Hard + 24 Normal), v4 vượt baseline rõ (mAP50: 0,399 → 0,929; trên Hard: 0,189
+→ 0,875), khẳng định cải tiến hướng tới độ bền thực tế chứ không chỉ tối ưu miền
+studio.
+
+Hướng phát triển: mở rộng fair_eval và dữ liệu camera đa điều kiện; bổ sung lớp 500
+đồng; thử kiến trúc thay thế hoặc hậu xử lý phân lớp trên crop; nghiên cứu ngưỡng
+thích nghi theo ngữ cảnh; tích hợp OCR sê-ri nếu có nhu cầu định danh tờ.
+
+​
+​
+
+
+
+
+                                         18
+PHỤ LỤC A. PHÂN CÔNG NHIỆM VỤ VÀ TỰ ĐÁNH GIÁ ĐÓNG GÓP
+
+
+
+ TT     Mã SV           Họ và tên              Nhiệm vụ chính           Tự đánh giá đóng
+                                                                            góp (%)
+
+                    Hoàng Minh Đức       Hỗ trợ báo cáo, slide thuyết         10
+  1   B26CHKH008
+                         Anh                        trình
+
+      B26CHKH030     Trần Việt Dũng​     Pipeline, huấn luyện model,          45
+  2
+                     (Nhóm trưởng)       báo cáo & slide, QA & Test
+
+      B26CHKH059     Vũ Hoàng Lâm       Pipeline,, gán nhãn metadata,         20
+  3
+                                                  QA & Test
+
+      B26CHKH072     Lê Khánh Minh          Thu thập nguồn ảnh, gán           25
+  4
+                                            nhãn metadata thủ công,
+                                               huấn luyện model
+
+            Bảng A.1. Phân công và tỷ lệ đóng góp (tự đánh giá nhóm)
+
+
+
+
+                                       19
+PHỤ LỤC B. TÀI NGUYÊN MÃ NGUỒN VÀ NOTEBOOK KÈM BÁO
+CÁO
+
+Cấu trúc thư mục báo cáo:
+
+report/​
+Bao_cao_Nhan_dang_tien_Viet_Nam.docx​
+notebooks/​
+01_EDA_Bao_cao.ipynb​
+02_Qua_trinh_Train_va_Cai_tien.ipynb​
+03_So_sanh_Baseline_vs_Final.ipynb​
+figures/ # biểu đồ so sánh​
+exports/ # CSV/JSON chỉ số
+
+Mã nguồn huấn luyện và demo nằm ở thư mục gốc dự án: train_baseline.py,
+train_v2.py, train_v3.py, train_v4.py, demo_camera.py. Tập đánh giá độc lập:
+datasets/fair_eval_hardmix (được dựng bằng datasets/build_fair_eval_hardmix.py).
+Các notebook báo cáo được sắp theo logic trình bày: 01 (EDA) → 02 (huấn luyện/cải
+tiến) → 03 (so sánh baseline–final trên fair_eval_hardmix). Demo camera tương tác sử
+dụng trọng số mô hình cuối kèm cơ chế giữ nhãn theo thời gian khoảng 1 giây.
+
+
+
+
+                                        20
+                               TÀI LIỆU THAM KHẢO
+
+[1] Ultralytics, YOLOv8 Documentation, https://docs.ultralytics.com/
+
+[2] Roboflow Universe, Vietnamese Currency dataset (first-qkz37),
+https://universe.roboflow.com/first-qkz37/vietnamese-currency-lgi9i
+
+[3] Jocher, G. et al., Ultralytics YOLO, GitHub repository.
+
+[4] Huy Pham Nguyen Thanh, Vietnamese Money, Kaggle Datasets.
+
+[5] Everingham, M. et al., The Pascal Visual Object Classes (VOC) Challenge, IJCV, 2010
+(nền tảng metric AP/mAP).
+
+[6] Tài liệu học phần Nhận dạng mẫu - Khoa CNTT1, Học viện Công nghệ Bưu chính Viễn
+thông.
+
+
+
+
+                                              21
+

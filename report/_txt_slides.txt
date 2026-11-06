@@ -1,0 +1,346 @@
+Học viện Công nghệ Bưu chính Viễn thông
+Bài tập lớn — Học phần Nhận dạng mẫu
+
+
+
+Phát hiện và nhận dạng
+mệnh giá tiền Việt Nam bằng YOLOv8
+
+
+  THÔNG TIN ĐƠN VỊ                        THÀNH VIÊN THỰC HIỆN
+
+  Nhóm 08                                 • Trần Việt Dũng Nhóm trưởng)   • Vũ Hoàng Lâm
+  Lớp: M26CQKH01B                        • Hoàng Minh Đức Anh             • Lê Khánh Minh
+Nội dung trình bày
+●   Bài toán và mục tiêu nghiên cứu
+●   Nguồn dữ liệu và phân tích sơ bộ EDA
+●   Mô hình cơ sở Baseline YOLOv8n
+●   Hành trình cải tiến qua các vòng (v2 đến v4
+●   Protocol đánh giá công bằng trên ảnh thực tế Hard / Normal)
+●   Kết quả đánh giá định lượng và định tính
+●   Phân tích hạn chế và hướng phát triển tương lai
+Phát biểu bài toán: Object Detection đa lớp cho tiền Việt Nam
+Đây là bài toán phát hiện đối tượng (object detection) đa lớp, yêu cầu đồng thời định vị và phân lớp tờ tiền.
+
+
+    ĐẦU VÀO                                                 KHÔNG GIAN NHÃN
+
+  • Ảnh RGB chứa không, một hoặc nhiều tờ                 Gồm 9 mệnh giá phổ biến:
+  tiền Việt Nam.
+                                                               1.000 đ         2.000 đ           5.000 đ
+
+
+                                                              10.000 đ         20.000 đ         50.000 đ
+
+
+                                                             100.000 đ        200.000 đ         500.000 đ
+    ĐẦU RA
+
+  • Danh sách các đối tượng gồm tọa độ hộp
+  bao (bounding box), nhãn mệnh giá và độ                    LƯU Ý
+  tin cậy.
+                                                          Mệnh giá 500 đồng chưa có đủ mẫu nên
+                                                          không đưa vào phạm vi huấn luyện.
+Mục tiêu & Phạm vi nghiên cứu
+           Mục tiêu chính                          Phạm vi và giả định
+
+                                                 Tập trung vào tiền giấy và polymer
+      Xây dựng pipeline hoàn chỉnh từ dữ     ✓
+  1                                              Việt Nam.
+      liệu đến mô hình có thể tái lập.
+
+                                                 Không nhận diện tiền giả theo đặc
+                                             ✕
+                                                 trưng bảo an chuyên sâu.
+      Đánh giá khách quan và so sánh mô
+  2   hình cơ sở với mô hình cải tiến trên
+      miền dữ liệu thực tế.
+                                                 Không sử dụng OCR để đọc số
+                                             ✕
+                                                 sê-ri.
+
+      Cung cấp demo tương tác bằng
+                                                 Điều kiện ánh sáng kém, chuyển
+  3   camera để minh họa khả năng hoạt
+                                             !   động mạnh hoặc che khuất lớn
+      động ngoài môi trường studio.
+                                                 được xếp vào nhóm ảnh Hard.
+Nguồn dữ liệu huấn luyện và đánh giá
+
+Tập Roboflow                            Ảnh Camera Thực Tế                       Tập fair_eval_hardmix
+Vietnamese Currency                     Dữ liệu thu thập thêm                    Tập kiểm thử độc lập
+Mục đích: Dùng để huấn luyện và         Quy mô: Khoảng 18 ảnh gốc.               Mục đích: Dùng để đánh giá độc
+theo dõi.                                                                        lập mô hình.
+                                        Mục đích: Dùng để fine-tune mô
+Quy mô: 1.537 ảnh train, 439 ảnh        hình.                                    Quy mô: Gồm 40 ảnh chụp thực
+valid và 218 ảnh test.                                                           tế.
+                                        Tác dụng: Giúp mô hình thích nghi
+Đặc điểm: Đã được tiền xử lý            tốt với điều kiện miền thực tế.          Phân loại: 16 ảnh Hard và 24 ảnh
+(letterbox nền trắng), mang tính                                                 Normal.
+chất miền studio "dễ".
+
+
+
+
+ Nhận xét quan trọng
+ Cần tập ảnh thực tế để đo lường độ bền của hệ thống, tránh ảo giác bão hòa chỉ số chỉ trên tập studio.
+Phân tích sơ bộ dữ liệu EDA & Nhận xét then chốt
+
+ 01                                        02
+ Định dạng nhãn: Tồn tại sự pha trộn       Đặc điểm hình ảnh: Tiền xử lý letterbox
+ giữa nhãn đa giác (polygon) và hộp bao.   trên Roboflow tạo ra thiên lệch miền với
+ Toàn bộ đã được chuyển đổi thống nhất     nền trắng đồng nhất.
+ về định dạng hộp bao YOLO.
+
+
+
+
+ 03                                        04
+ Phân bố đặc trưng: Một số cặp mệnh        Phạm vi lớp: Thiếu hụt hoàn toàn lớp
+ giá có màu sắc gần nhau (như 5.000 và     500 đồng trong nguồn chính, dẫn đến
+ 20.000 đồng) rất dễ gây nhầm lẫn khi      việc phải thu hẹp phạm vi bài toán
+ điều kiện quan sát kém.                   xuống còn 9 lớp mệnh giá.
+Mô hình cơ sở Baseline A0 YOLOv8n)
+THIẾT LẬP HUẤN LUYỆN                                KẾT QUẢ TẬP VALID ROBOFLOW
+
+• Kiến trúc: YOLOv8n (khởi tạo từ trọng số
+COCO                                                      mAP50                  mAP5095
+• Kích thước ảnh: imgsz=640
+• Quy mô: Huấn luyện trong khoảng 50 epoch
+                                                       0.995                   0.93
+                                                            Rất cao                 Khá tốt
+trên tập dữ liệu Roboflow.
+
+
+
+
+ NHẬN XÉT THEN CHỐT
+ • Chỉ số mAP cao cho thấy miền dữ liệu studio Roboflow) gần như đã bão hòa.
+ • Việc chỉ dựa vào kết quả trên Roboflow không phản ánh đúng hiệu năng thực tế khi triển khai.
+ ➔ Yêu cầu bắt buộc: Bắt buộc phải đánh giá trên tập ảnh chụp thực tế để xác định chính xác độ
+ bền của mô hình.
+Hành trình cải tiến mô hình: Vòng v2 đến v4
+
+        Vòng v2                     Vòng v3                Vòng v4          FINAL
+
+
+
+• Chuyển sang kiến trúc     • Tăng kích thước ảnh đầu   • Fine-tune mô hình từ v3
+YOLOv8s lớn hơn.            vào (imgsz).                trên tập dữ liệu bổ sung
+                                                        ảnh camera thực tế.
+• Tăng cường dữ liệu mạnh   • Áp dụng xoay 90° và lấy
+mẽ (scale, mosaic, mixup)   mẫu lại (oversample) các    • Tích hợp cơ chế giữ nhãn
+nhằm tăng dung lượng        lớp khó (như 5.000,         theo thời gian (khoảng 1
+mạng và độ đa dạng biến     20.000, 200.000.           giây) khi demo.
+dạng.
+                            • Giảm thiểu lỗi nhầm lẫn   • Thu hẹp khoảng cách
+                            giữa các cặp màu gần        miền (domain gap).
+                            nhau.
+Protocol đánh giá công bằng trên fair_eval_hardmix
+ 1            Tập dữ liệu đánh giá              2            Đặc điểm nhóm Hard
+ Sử dụng 40 ảnh chụp thực tế để kiểm thử toàn   Bao gồm các điều kiện cực đoan môi trường thực
+ diện khả năng tổng quát hóa.                   tế:
+
+ • 16 ảnh Hard: Các trường hợp thách thức cao   • Lóa sáng & Hắt sáng mạnh từ phía sau
+                                                • Tờ tiền bị cong, biến dạng
+ • 24 ảnh Normal: Các điều kiện tiêu chuẩn
+                                                • Nền nhiễu, hỗn độn phức tạp
+ • Cấu hình: seed = 42 (đảm bảo tính lặp lại)
+                                                • Tờ tiền bị xoay hoặc lật ngược
+
+
+
+ 3      Giao thức đo lường Protocol)           4             Nguyên tắc độc lập
+
+ Thực hiện cố định chuẩn hóa các siêu tham số   Tập fair_eval_hardmix chỉ được sử dụng làm
+ đầu vào khi đánh giá mô hình:                  tập đánh giá độc lập hoàn toàn.
+ • Kích thước ảnh đầu vào: imgsz = 640          Chỉ tiến hành thử nghiệm sau khi đã khóa cấu
+                                                hình huấn luyện trên Roboflow, đánh giá độc
+ • Ngưỡng tin cậy tối thiểu: conf = 0.25        lập sau khi khóa cấu hình và đảm bảo hạn chế
+                                                thiên lệch.
+Kết quả đánh giá tổng quan Tất cả 40 ảnh)
+So sánh hiệu năng giữa Baseline A0 và Final v4 trên toàn bộ tập fair_eval_hardmix:
+
+ mAP50 Baseline 0,399 ➔ Final v4 0,929 0,530
+
+
+ mAP5095 Baseline 0,325 ➔ Final v4 0,644
+
+
+ Precision: Baseline 0,708 ➔ Final v4 0,921
+
+
+ Recall: Baseline 0,435 ➔ Final v4 0,913
+
+                                                            Biểu đồ so sánh Baseline vs Final (fair_eval)
+
+ F1Score: Baseline 0,539 ➔ Final v4 0,917
+
+
+ Nhận xét:
+ Trên ảnh chụp thực tế, khoảng cách hiệu năng giữa hai mô
+ hình lộ rõ, hoàn toàn khác biệt so với kết quả bão hòa
+ 0,99) trên tập Roboflow.
+So sánh hiệu năng theo độ khó: Hard vs Normal
+Phân tích mAP50 theo từng nhóm độ khó:
+• Nhóm Hard 16 ảnh Baseline A0 suy giảm
+mạnh, chỉ đạt 0,189. Trong khi đó, Final v4 duy
+trì mức hiệu năng cao, đạt 0,875 Chênh lệch
+0,686).
+• Nhóm Normal 24 ảnh Baseline A0 đạt
+0,573, Final v4 đạt 0,955 Chênh lệch
+0,382).
+                                                    Biểu đồ so sánh mAP50 giữa mô hình A0 baseline và v4
+                                                     final trên hai tập dữ liệu Hard và Normal (imgsz=640,
+                                                                             conf=0.25
+
+  Nhận xét:
+  Lợi ích cốt lõi của mô hình v4 tập trung ở miền
+  dữ liệu Hard. Baseline thất bại nặng nề khi đối
+  mặt với các điều kiện thực tế khó khăn.
+Đánh giá AP50 theo từng mệnh giá
+Cải thiện hiệu năng không đồng đều: Sự
+                                              Biểu đồ so sánh Per-class AP50 (fair protocol)
+gia tăng AP50 diễn ra rõ rệt nhất ở các lớp
+mệnh giá vốn là điểm yếu của baseline.
+
+
+Khắc phục nhầm lẫn màu sắc: Nhóm các
+tờ tiền có gam màu gần nhau (như 5.000,
+20.000, và 200.000 đồng) là trọng tâm
+của các vòng cải tiến.
+
+Hiệu quả chiến lược: Nhờ việc tăng cường
+dữ liệu và oversample các lớp khó, Final       Ghi chú: Model v4 final thể hiện sự vượt trội ở các lớp
+v4 đã nâng cao đáng kể độ chính xác            mệnh giá thấp và trung bình 2.000, 5.000, 10.000,
+nhận dạng cho từng mệnh giá cụ thể trên        20.000, 50.000) so với A0 baseline.
+tập fair_eval_hardmix.
+Minh chứng kết quả định tính #1 Ảnh Hard nhiều tờ tiền
+
+ Đánh giá trực quan trên nhóm Hard
+ So sánh Nhãn thật GT) với dự đoán của Baseline A0 và Final v4
+ (imgsz=640, conf=0.25).
+
+
+
+ Lỗi của Baseline A0
+ Khi có nhiều tờ tiền chồng lấn hoặc góc nghiêng lớn,
+ Baseline A0 thường xuyên bỏ sót đối tượng hoặc phân
+ loại nhầm mệnh giá.
+
+
+
+ Hiệu quả của Final v4
+ Mô hình cải tiến bám sát Nhãn thật, duy trì độ ổn định
+ của hộp bao và phân lớp chính xác ngay cả trong điều
+ kiện mật độ đối tượng dày đặc.
+ Minh chứng kết quả định tính #2 Ảnh Hard điều kiện ánh sáng/xoay
+ khó
+Thử thách môi trường thực            Khoảng cách miền Domain           Sự vượt trội của v4
+tế                                   gap)                               Nhờ chiến lược fine-tune trên ảnh
+Các ảnh thuộc nhóm Hard chứa         Mô hình Baseline A0 (chỉ huấn      camera thật và tăng cường dữ liệu
+yếu tố lóa sáng mạnh, nền hỗn        luyện trên studio) suy giảm mạnh   mạnh mẽ, Final v4 vẫn định vị và
+độn, hắt sáng hoặc tờ tiền bị xoay   trước các điều kiện nhiễu này.     nhận dạng chính xác trong điều
+góc lớn.                                                                kiện ánh sáng cực đoan.
+Minh chứng kết quả định tính #3 Ảnh Normal & Collage tổng
+hợp
+
+1. Hiệu năng trên điều kiện thuận lợi
+Đối với các ảnh thuộc nhóm Normal (điều kiện ánh
+sáng tốt, ít che khuất), cả hai mô hình đều hoạt động
+tương đối ổn định.
+
+
+2. Thu hẹp khoảng cách hiệu năng
+Khoảng cách hiệu năng giữa Baseline A0 và Final v4
+được thu hẹp đáng kể trên nhóm Normal.
+
+
+
+ 3. Kết luận định tính
+ Khả năng hoạt động tốt của baseline trên
+ ảnh Normal khẳng định rằng, nhóm ảnh
+ Hard mới thực sự là thước đo phân biệt độ
+ bền bỉ và tính ứng dụng thực tế của mô
+ hình.
+Phân tích ngưỡng tin cậy & Đường cong huấn luyện
+
+ 1. Lựa chọn ngưỡng tin cậy                               Kết quả Quét Ngưỡng (fair_eval sweep — cost_proxy & f1
+ Quét ngưỡng (confidence sweep) trên
+ fair_eval_hardmix dựa trên hàm chi phí proxy, phạt lỗi
+ bỏ sót (cFN  3) nặng hơn báo nhầm (cFP  1).
+                                                          Ngưỡng tối ưu (τ*)        Precision (v4)          Conf Protocol
+
+                                                              0,45                   0,943                    0,25
+ 2. Ngưỡng tối ưu
+                                                          • Model v4 final vượt trội hoàn toàn so với A0 baseline trên cả
+ Đối với Final v4, ngưỡng tối ưu đạt được là              hai phương diện cost_proxy (thấp hơn) và f1-score (cao hơn).
+ τ* = 0,45, giúp Precision tăng rõ rệt lên                • Trọng số phạt lỗi bỏ sót: cFN  3 vs cFP  1.
+ khoảng 0,943.
+
+
+ 3. Giao thức so sánh
+ Mặc dù ngưỡng 0,45 tối ưu cho triển khai,
+ toàn bộ đánh giá so sánh chính vẫn cố định ở
+ conf = 0,25 để đảm bảo tính công bằng theo
+ protocol.
+Phân tích lỗi thường gặp & Hạn chế của giải pháp
+        Các lỗi thường gặp                  Hạn chế của giải pháp
+
+ Nhầm lẫn mệnh giá giữa các cặp màu     Tập fair_eval_hardmix quy mô nhỏ 40
+ gần nhau khi điều kiện ánh sáng xấu    ảnh), khiến khoảng tin cậy thống kê
+ hoặc bão hòa màu thấp.                 còn rộng.
+
+
+
+ Bỏ sót đối tượng khi ảnh bị mờ mạnh,   Số lượng ảnh camera thực tế dùng để
+ chuyển động nhanh hoặc bị che khuất.   fine-tune còn hạn chế.
+
+
+
+
+ Chỉ số IoU giảm khi tờ tiền có góc     Chưa bao gồm mệnh giá 500 đồng và
+ nghiêng lớn, ảnh hưởng đến             chưa tích hợp module phát hiện tiền
+ mAP5095.                              giả hay OCR.
+Các đóng góp chính & Kết luận rút ra Takeaways)
+
+       Xây dựng thành công pipeline toàn             Sự vượt trội trên ảnh thực
+  01   diện                                     02
+                                                     Final v4 cải thiện mAP50 toàn tập từ
+       Từ phân tích EDA, huấn luyện baseline,        0,399 lên 0,929; đặc biệt trên nhóm
+       tinh chỉnh đa vòng đến đánh giá độc           Hard tăng từ 0,189 lên 0,875.
+       lập.
+
+
+
+
+       Khoảng cách miền dữ liệu                      Hiệu quả cải tiến
+ 03                                             04
+       Chỉ số bão hòa trên Roboflow không            Đạt được nhờ sự kết hợp giữa tăng
+       phản ánh độ bền thực tế; tập đánh giá         dung lượng mạng, tăng cường dữ liệu,
+       Hard/Normal là bắt buộc.                      oversample lớp khó và bổ sung dữ liệu
+                                                     thực tế.
+Hướng phát triển & Mở rộng trong tương lai
+      Mở rộng dữ liệu: Gia tăng quy mô tập fair_eval và thu thập thêm dữ liệu camera đa điều
+ 01
+      kiện có kiểm soát nhãn.
+
+
+      Bổ sung không gian nhãn: Đưa mệnh giá 500 đồng vào quá trình huấn luyện để hoàn
+ 02
+      thiện bộ nhận diện.
+
+
+      Nâng cấp hậu xử lý: Thử nghiệm phân lớp trên vùng cắt (crop) bằng đặc trưng màu sắc
+ 03
+      hoặc kết cấu để tăng cường độ chính xác.
+
+
+ 04   Tối ưu hóa triển khai: Nghiên cứu áp dụng ngưỡng tin cậy thích nghi theo ngữ cảnh.
+
+
+      Mở rộng tính năng: Tích hợp công nghệ OCR để đọc số sê-ri nhằm định danh từng tờ tiền
+ 05
+      cụ thể.
+Cảm ơn Thầy và bạn đã chú ý lắng nghe!
+
